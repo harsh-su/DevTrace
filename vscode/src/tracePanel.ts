@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { randomBytes } from 'node:crypto'
+import type { SourceLanguage } from '@devtrace/core'
 
 /** One changed hunk of the file, located in the proposed `after` text. */
 export interface TraceRegionInit {
@@ -23,6 +24,7 @@ interface PendingInit {
   regions: TraceRegionInit[]
   mode?: 'proposal' | 'tour'
   brief?: string
+  language?: SourceLanguage
 }
 
 interface TraceMetrics {
@@ -74,7 +76,7 @@ export class TracePanel {
     after: string,
     regions: TraceRegionInit[],
     label: string,
-    opts?: { mode?: 'proposal' | 'tour'; brief?: string },
+    opts?: { mode?: 'proposal' | 'tour'; brief?: string; language?: SourceLanguage },
   ): Promise<TracePanelResult> {
     const instance = TracePanel.current ?? new TracePanel(extensionUri)
     TracePanel.current = instance
@@ -92,11 +94,11 @@ export class TracePanel {
     after: string,
     label: string,
     regions: TraceRegionInit[],
-    opts?: { mode?: 'proposal' | 'tour'; brief?: string },
+    opts?: { mode?: 'proposal' | 'tour'; brief?: string; language?: SourceLanguage },
   ): Promise<TracePanelResult> {
     return new Promise((resolve) => {
       this.resolver = resolve
-      this.pending = { after, label, regions, mode: opts?.mode, brief: opts?.brief }
+      this.pending = { after, label, regions, mode: opts?.mode, brief: opts?.brief, language: opts?.language }
       this.flush()
     })
   }
@@ -110,6 +112,7 @@ export class TracePanel {
       regions: this.pending.regions,
       mode: this.pending.mode,
       brief: this.pending.brief,
+      language: this.pending.language,
     })
     this.pending = null
   }

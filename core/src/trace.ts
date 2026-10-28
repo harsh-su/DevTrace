@@ -111,6 +111,19 @@ export function createTrace(text: string): Trace {
   }
 }
 
+/** Mark source ranges that should be retained but never typed or scored. */
+export function markSkipped(t: Trace, start: number, end: number): void {
+  const lo = Math.max(0, start)
+  const hi = Math.min(t.states.length, end)
+  for (let i = lo; i < hi; i++) t.states[i] = SKIPPED
+}
+
+/** Move over pre-skipped source until the next typeable character. */
+export function advanceSkipped(t: Trace): number {
+  while (t.cursor < t.doc.text.length && t.states[t.cursor] === SKIPPED) t.cursor++
+  return t.cursor
+}
+
 export function isComplete(t: Trace): boolean {
   return t.cursor >= t.doc.text.length
 }

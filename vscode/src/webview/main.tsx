@@ -4,8 +4,14 @@ import {
   aggregateMetrics,
   buildDoc,
   CONTEXT,
+  SKIPPED,
   createTrace,
+  languageId,
+  markSkipped,
+  skipRuns,
+  advanceSkipped,
   finalizeAll,
+  isComplete,
   topOffendersAcross,
   typedText,
   type Doc,
@@ -43,6 +49,7 @@ interface InitMessage {
   mode?: 'proposal' | 'tour'
   /** Tour mode only: the plain-English explanation shown before typing. */
   brief?: string
+  language?: ReturnType<typeof languageId>
 }
 
 type Phase = 'idle' | 'brief' | 'trace' | 'done'
@@ -54,31 +61,12 @@ function lineAtDoc(doc: Doc, off: number): number {
   return doc.lineOf[o] as number
 }
 
-function ProposalPane({ regions, activeIndex }: { regions: RegionInit[]; activeIndex: number }) {
-  return (
-    <aside className="proposal-pane" aria-label="AI proposed edits">
-      <div className="proposal-kicker">AI proposal</div>
-      <p className="proposal-copy">Read the change first. Only the separate trace surface accepts your typing.</p>
-      <div className="proposal-list">
-        {regions.map((region, index) => (
-          <section className={`proposal-card${index === activeIndex ? ' active' : ''}`} key={`${region.start}-${index}`}>
-            <div className="proposal-card-head">
-              <span>Change {index + 1}</span>
-              <span>{region.target.length} chars</span>
-            </div>
-            <pre>{region.target || '(deletion)'}</pre>
-          </section>
-        ))}
-      </div>
-    </aside>
-  )
-}
-
 function App() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [label, setLabel] = useState('')
   const [mode, setMode] = useState<NonNullable<InitMessage['mode']>>('proposal')
   const [brief, setBrief] = useState('')
+  const [language, setLanguage] = useState<ReturnType<typeof languageId>>('none')
   const [activeIndex, setActiveIndex] = useState(-1)
   const [final, setFinal] = useState<Metrics | null>(null)
   const [offenders, setOffenders] = useState<Offender[]>([])
@@ -115,8 +103,13 @@ function App() {
     let total = 0
     let done = 0
     for (let i = 0; i < regions.length; i++) {
-      total += (regions[i] as RegionInit).target.length
-      done += traces[i]?.cursor ?? 0
+      const trace = traces[i]
+      if (!trace) continue
+      for (let k = 0; k < trace.states.length; k++) {
+        if (trace.states[k] === SKIPPED) continue
+        total++
+        if (trace.states[k] !== 0) done++
+      }
     }
     const pct = total > 0 ? Math.round((done / total) * 100) : 100
     vscode.postMessage({ type: 'progress', pct })
@@ -131,7 +124,17 @@ function App() {
       const states = new Uint8Array(m.after.length).fill(CONTEXT)
       const wrongAt = new Map<number, string>()
       const versions = new Uint32Array(doc.lines.length + 1)
-      const traces = m.regions.map((r) => createTrace(r.target))
+       const runs = skipRuns(m.after, m.language ?? 'none')
+       const traces = m.regions.map((r) => {
+         const trace = createTrace(r.target)
+         for (const run of runs) {
+           const start = Math.max(run.start - r.start, 0)
+           const end = Math.min(run.end - r.start, r.target.length)
+           if (end > start) markSkipped(trace, start, end)
+         }
+         advanceSkipped(trace)
+         return trace
+       })
       for (let i = 0; i < m.regions.length; i++) {
         const r = m.regions[i] as RegionInit
         const t = traces[i] as Trace
@@ -146,20 +149,27 @@ function App() {
       versionsRef.current = versions
 
       setLabel(m.label)
-      setMode(m.mode ?? 'proposal')
+       setMode(m.mode ?? 'proposal')
+       setLanguage(m.language ?? 'none')
       setBrief(m.brief ?? '')
       setFinal(null)
       setOffenders([])
       let first = -1
       for (let i = 0; i < m.regions.length; i++) {
-        if ((m.regions[i] as RegionInit).target.length > 0) {
+        if (!isComplete(traces[i] as Trace)) {
           first = i
           break
         }
       }
       setActiveIndex(first)
       setTick(0)
-      setPhase(m.mode === 'tour' ? 'brief' : 'trace')
+       if (m.mode === 'tour') setPhase('brief')
+       else if (first >= 0) setPhase('trace')
+       else {
+         setFinal(aggregateMetrics(traces))
+         setOffenders(topOffendersAcross(traces))
+         setPhase('done')
+       }
       postProgress()
     }
     window.addEventListener('message', onMessage)
@@ -194,9 +204,10 @@ function App() {
   const onHunkComplete = useCallback(
     (index: number) => {
       const regions = regionsRef.current
+      const traces = tracesRef.current
       let next = -1
       for (let i = index + 1; i < regions.length; i++) {
-        if ((regions[i] as RegionInit).target.length > 0) {
+        if (!isComplete(traces[i] as Trace)) {
           next = i
           break
         }
@@ -229,7 +240,17 @@ function App() {
     const regions = regionsRef.current
     const states = statesRef.current
     const versions = versionsRef.current
-    const traces = regions.map((r) => createTrace(r.target))
+     const runs = skipRuns(docRef.current?.text ?? '', language)
+     const traces = regions.map((r) => {
+       const trace = createTrace(r.target)
+       for (const run of runs) {
+         const start = Math.max(run.start - r.start, 0)
+         const end = Math.min(run.end - r.start, r.target.length)
+         if (end > start) markSkipped(trace, start, end)
+       }
+       advanceSkipped(trace)
+       return trace
+     })
     states.fill(CONTEXT)
     wrongAtRef.current.clear()
     versions.fill(0)
@@ -241,7 +262,7 @@ function App() {
     tracesRef.current = traces
     let first = -1
     for (let i = 0; i < regions.length; i++) {
-      if ((regions[i] as RegionInit).target.length > 0) {
+       if (!isComplete(traces[i] as Trace)) {
         first = i
         break
       }
@@ -250,9 +271,14 @@ function App() {
     setFinal(null)
     setOffenders([])
     setTick(0)
-    setPhase('trace')
+     if (first >= 0) setPhase('trace')
+     else {
+       setFinal(aggregateMetrics(traces))
+       setOffenders(topOffendersAcross(traces))
+       setPhase('done')
+     }
     postProgress()
-  }, [postProgress])
+   }, [language, postProgress])
 
   useMultiTraceInput(phase === 'trace', tracesRef.current, activeIndex, {
     onBump,
@@ -367,7 +393,6 @@ function App() {
       </header>
 
       <div className="trace-layout">
-        {mode === 'proposal' && <ProposalPane regions={regions} activeIndex={activeIndex} />}
         <main className="typing-surface">
           <div className="surface-head">
             <span>Type the highlighted change</span>

@@ -1,0 +1,21 @@
+.flow-page { min-height: 100%; background: var(--bg); color: var(--fg); }
+.flow-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.flow-header strong { display: block; font-size: 20px; letter-spacing: -.3px; }
+.flow-header span { color: var(--fg-faint); font-size: 12px; }
+.flow-graph { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; padding: 24px; }
+.flow-file { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg-2); }
+.flow-node, .flow-symbol { width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; text-align: left; background: transparent; }
+.flow-node { padding: 12px 14px; background: var(--bg-3); }
+.flow-symbol { padding: 9px 14px 9px 25px; color: var(--fg-dim); }
+.flow-node:hover, .flow-symbol:hover, .selected { background: var(--btn-hover); }
+.flow-node small, .flow-symbol small { display: block; color: var(--fg-faint); font: 11px var(--mono); margin-top: 3px; }
+.flow-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 9px 16px; border-top: 1px solid var(--line); background: var(--bg-2); color: var(--fg-faint); font-size: 12px; }
+.flow-edges { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.flow-edge-title { color: var(--fg-faint); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.flow-edge { display: flex; align-items: center; gap: 9px; padding: 6px 0; color: var(--fg-dim); border-bottom: 1px solid var(--line); font-size: 12px; }
+.flow-edge code { color: var(--fg); font: 12px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flow-focus-summary { display: flex; gap: 12px; align-items: baseline; padding: 8px 0 12px; color: var(--fg-dim); }
+.flow-focus-summary strong { color: var(--fg); font: 14px var(--mono); }
+.flow-focus-summary span, .flow-focus-summary small { color: var(--fg-faint); }
+.edge-kind { color: var(--accent); font-size: 10px; text-transform: uppercase; }
+.flow-edge small { color: var(--fg-faint); margin-left: auto; font: 11px var(--mono); }

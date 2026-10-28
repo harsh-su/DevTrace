@@ -302,27 +302,13 @@ input:focus { border-color: var(--accent); }
 .tracing { display: flex; flex-direction: column; height: 100%; }
 
 .trace-layout { display: flex; flex: 1; min-height: 0; background: var(--bg); }
-.proposal-pane {
-  width: 270px;
-  flex: 0 0 auto;
-  padding: 24px 18px;
-  overflow-y: auto;
-  border-right: 1px solid var(--line);
-  background: var(--bg-2);
-}
-.proposal-kicker, .surface-head {
+.surface-head {
   color: var(--fg-faint);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
 }
-.proposal-copy { color: var(--fg-dim); font-size: 12px; line-height: 1.55; margin: 9px 0 20px; }
-.proposal-list { display: flex; flex-direction: column; gap: 10px; }
-.proposal-card { border: 1px solid var(--line); border-radius: 7px; background: var(--bg); overflow: hidden; }
-.proposal-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.proposal-card-head { display: flex; justify-content: space-between; padding: 7px 9px; color: var(--fg-faint); font-size: 10px; }
-.proposal-card pre { margin: 0; padding: 9px; border-top: 1px solid var(--line); color: var(--code); font: 11px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .typing-surface { display: flex; flex: 1; min-width: 0; min-height: 0; flex-direction: column; }
 .surface-head { display: flex; justify-content: space-between; padding: 17px 24px 10px; border-bottom: 1px solid var(--line); }
 .surface-step { color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -504,9 +490,5 @@ input:focus { border-color: var(--accent); }
   .split { flex-direction: column; }
   .chunkpane { width: auto; border-top: 1px solid var(--line); }
   .trace-layout { flex-direction: column; }
-  .proposal-pane { width: auto; max-height: 190px; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; }
-  .proposal-copy { margin-bottom: 10px; }
-  .proposal-list { flex-direction: row; overflow-x: auto; }
-  .proposal-card { min-width: 210px; }
   .surface-head { padding-left: 16px; padding-right: 16px; }
 }

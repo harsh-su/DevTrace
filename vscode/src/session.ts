@@ -1,11 +1,15 @@
 import * as vscode from 'vscode'
 import {
   SKIPPED,
+  advanceSkipped,
   WRONG,
   backspace as coreBackspace,
   createTrace,
   finalizeAll,
   isComplete,
+  languageId,
+  markSkipped,
+  skipRuns,
   metrics as coreMetrics,
   press as corePress,
   resolveEdit,
@@ -137,6 +141,10 @@ export class TraceSession implements vscode.Disposable {
     hooks: SessionHooks,
   ) {
     this.trace = createTrace(target)
+    for (const run of skipRuns(target, languageId(editor.document.fileName))) {
+      markSkipped(this.trace, run.start, run.end)
+    }
+    advanceSkipped(this.trace)
     this.regionStart = regionStart
     this.baseText = baseText
     this.originalRegion = originalRegion
@@ -206,9 +214,10 @@ export class TraceSession implements vscode.Disposable {
 
     const { typed, restore } = resolveEdit(base, now, insertions, expected)
 
-    if (typed !== undefined) {
-      for (const ch of typed) {
-        if (isComplete(t)) break
+      if (typed !== undefined) {
+        for (const ch of typed) {
+          advanceSkipped(t)
+          if (isComplete(t)) break
         corePress(t, ch, performance.now())
       }
       log(`typed "${typed}" @${expected} -> cursor ${t.cursor}`)
@@ -252,6 +261,7 @@ export class TraceSession implements vscode.Disposable {
 
   tab(): void {
     const t = this.trace
+    advanceSkipped(t)
     if (isComplete(t)) return
     const line = t.doc.lineOf[t.cursor] as number
     const lineStart = t.doc.lineStarts[line] as number
@@ -267,6 +277,7 @@ export class TraceSession implements vscode.Disposable {
   backspace(): void {
     if (this.disposed) return
     coreBackspace(this.trace, performance.now())
+    advanceSkipped(this.trace)
     this.moveCaret()
     this.render()
     this.hooks.onProgress?.(this.trace)
@@ -281,11 +292,13 @@ export class TraceSession implements vscode.Disposable {
 
   private feed(ch: string, kind: 'type' | 'newline'): void {
     if (this.disposed || isComplete(this.trace)) return
+    advanceSkipped(this.trace)
     corePress(this.trace, ch, performance.now(), kind)
     this.afterFeed()
   }
 
   private afterFeed(): void {
+    advanceSkipped(this.trace)
     this.moveCaret()
     this.render()
     if (isComplete(this.trace)) this.complete()

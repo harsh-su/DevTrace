@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { backspace, isComplete, press, skipLine, tabFill, type Trace } from '@devtrace/core'
+import { advanceSkipped, backspace, isComplete, press, skipLine, tabFill, type Trace } from '@devtrace/core'
 
 export type FeedbackKind = 'ok' | 'err' | 'enter' | 'tab' | 'skip'
 
@@ -33,6 +33,7 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
     const onKey = (e: KeyboardEvent) => {
       const t = trace
       if (!t) return
+      advanceSkipped(t)
 
       // Ctrl/Cmd+Enter jumps past the current line without typing it. Handled
       // before the modifier guard below, which would otherwise swallow it.
@@ -63,6 +64,7 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
         e.preventDefault()
         const before = t.cursor
         if (backspace(t, now)) {
+          advanceSkipped(t)
           onFeedback?.('ok')
           onBump?.(before, t.cursor)
         }

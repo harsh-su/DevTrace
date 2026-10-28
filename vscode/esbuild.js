@@ -29,12 +29,25 @@ const webview = {
   logLevel: 'info',
 }
 
+const flow = {
+  entryPoints: ['src/webview/flow.tsx'],
+  bundle: true,
+  outfile: 'dist/flow.js',
+  format: 'iife',
+  platform: 'browser',
+  target: 'es2022',
+  jsx: 'automatic',
+  minify: !watch,
+  sourcemap: true,
+  logLevel: 'info',
+}
+
 async function main() {
   if (watch) {
-    const [ext, web] = await Promise.all([esbuild.context(extension), esbuild.context(webview)])
-    await Promise.all([ext.watch(), web.watch()])
+    const [ext, web, flowBuild] = await Promise.all([esbuild.context(extension), esbuild.context(webview), esbuild.context(flow)])
+    await Promise.all([ext.watch(), web.watch(), flowBuild.watch()])
   } else {
-    await Promise.all([esbuild.build(extension), esbuild.build(webview)])
+    await Promise.all([esbuild.build(extension), esbuild.build(webview), esbuild.build(flow)])
   }
 }
 
