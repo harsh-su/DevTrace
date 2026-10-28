@@ -1,70 +1,72 @@
 :root {
   color-scheme: dark;
-  --bg: #0f1115;
-  --bg-2: #151922;
-  --bg-3: #1c212c;
-  --line: #262c38;
-  --fg: #d7dce5;
-  --fg-dim: #79828f;
-  --fg-faint: #7d8798;
-  /* The colour of every source character, typed or not. 8.81:1 on --bg. */
-  --code: #a8b2bf;
-  /* Unedited neighbour code, deliberately quieter than the trace. */
-  --ctx: #6b7484;
-  /* How loud the green "you typed this correctly" fill is. */
-  --tint: #7ee2a82e;
-  --accent: #4f9cf9;
-  --accent-hover: #6badff;
-  --good: #7ee2a8;
-  --bad: #ff5f6d;
-  --cur-line: #ffffff08;
-  --curc: #4f9cf966;
-  --btn-hover: #232937;
-  --btn-hover-b: #333b4a;
-  --wrong-bg: #ff5f6d26;
-  --wrong-fg: #ff98a0;
-  --overlay: #0f1115cc;
-  --err-bg: #2a1519;
-  --err-line: #52242c;
-  --err-fg: #ff9aa2;
-  --note-bg: #2a2413;
-  --note-line: #5a4a1e;
-  --note-fg: #ffd98a;
-  --go-fg: #08111d;
+  --bg: #0b0f19;
+  --bg-2: #111726;
+  --bg-3: #1a2236;
+  --line: #222d47;
+  --fg: #e2e8f0;
+  --fg-dim: #94a3b8;
+  --fg-faint: #64748b;
+  /* The colour of every source character, typed or not */
+  --code: #cbd5e1;
+  /* Unedited neighbour code, deliberately quieter than the trace */
+  --ctx: #475569;
+  /* How loud the green "you typed this correctly" fill is */
+  --tint: rgba(52, 211, 153, 0.22);
+  --accent: #38bdf8;
+  --accent-hover: #0284c7;
+  --accent-glow: rgba(56, 189, 248, 0.35);
+  --good: #34d399;
+  --bad: #f43f5e;
+  --cur-line: rgba(56, 189, 248, 0.06);
+  --curc: rgba(56, 189, 248, 0.75);
+  --btn-hover: #1e293b;
+  --btn-hover-b: #334155;
+  --wrong-bg: rgba(244, 63, 94, 0.22);
+  --wrong-fg: #fda4af;
+  --overlay: rgba(11, 15, 25, 0.85);
+  --err-bg: #2d1218;
+  --err-line: #5c1d28;
+  --err-fg: #fca5a5;
+  --note-bg: #2b200b;
+  --note-line: #5c4516;
+  --note-fg: #fde047;
+  --go-fg: #020617;
   --line-h: 24px;
-  --fs: 15px;
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+  --fs: 14.5px;
+  --mono: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #ffffff;
-  --bg-2: #f4f6f9;
-  --bg-3: #e9ecf1;
-  --line: #d9dee6;
-  --fg: #1b2028;
-  --fg-dim: #5a6472;
-  --fg-faint: #8a93a1;
-  --code: #2b3440;
-  --ctx: #9aa3b1;
-  --tint: #1f9d5a24;
-  --accent: #2f6fd9;
-  --accent-hover: #245bc0;
-  --good: #1f9d5a;
-  --bad: #d93b48;
-  --cur-line: #2f6fd90d;
-  --curc: #2f6fd966;
-  --btn-hover: #dfe4eb;
-  --btn-hover-b: #cdd4de;
-  --wrong-bg: #d93b481f;
-  --wrong-fg: #c0392b;
-  --overlay: #ffffffdd;
-  --err-bg: #fdecee;
-  --err-line: #f3c2c7;
-  --err-fg: #b3283a;
-  --note-bg: #fff6de;
-  --note-line: #f0dca0;
-  --note-fg: #8a6a12;
+  --bg: #f8fafc;
+  --bg-2: #f1f5f9;
+  --bg-3: #e2e8f0;
+  --line: #cbd5e1;
+  --fg: #0f172a;
+  --fg-dim: #475569;
+  --fg-faint: #94a3b8;
+  --code: #1e293b;
+  --ctx: #94a3b8;
+  --tint: rgba(16, 185, 129, 0.18);
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-glow: rgba(2, 132, 199, 0.25);
+  --good: #10b981;
+  --bad: #e11d48;
+  --cur-line: rgba(2, 132, 199, 0.06);
+  --curc: rgba(2, 132, 199, 0.65);
+  --btn-hover: #e2e8f0;
+  --btn-hover-b: #cbd5e1;
+  --wrong-bg: rgba(225, 29, 72, 0.16);
+  --wrong-fg: #be123c;
+  --overlay: rgba(248, 250, 252, 0.9);
+  --err-bg: #fff1f2;
+  --err-line: #fecdd3;
+  --err-fg: #be123c;
+  --note-bg: #fefce8;
+  --note-line: #fef08a;
+  --note-fg: #854d0e;
   --go-fg: #ffffff;
 }
 
@@ -183,19 +185,196 @@ input:focus { border-color: var(--accent); }
 .topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--line);
   background: var(--bg-2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   flex: 0 0 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.topbar::-webkit-scrollbar { display: none; }
 .topbar .count { color: var(--fg-faint); font-size: 12px; }
 .topbar .search { margin-left: auto; width: 260px; }
 .topbar .chunklabel { font-family: var(--mono); font-size: 12.5px; color: var(--fg-dim); }
-.topbar .progress { margin-left: auto; display: flex; align-items: center; gap: 9px; }
-.pbar { width: 200px; height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden; }
-.pfill { height: 100%; background: var(--accent); transition: width 0.08s linear; }
+.topbar .progress { display: flex; align-items: center; gap: 8px; }
+.pbar { width: 140px; height: 5px; background: var(--bg-3); border-radius: 3px; overflow: hidden; }
+.pfill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--good)); transition: width 0.08s linear; }
 .pnum { font-size: 11px; color: var(--fg-faint); width: 34px; font-variant-numeric: tabular-nums; }
+
+/* --- HUD dashboard components --- */
+.chunk-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.file-badge {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg);
+  background: var(--bg-3);
+  padding: 4px 9px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.hud-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  font-family: var(--mono);
+  user-select: none;
+}
+.hud-pill .hud-label {
+  color: var(--fg-faint);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+}
+.hud-pill .hud-val {
+  color: var(--fg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hud-pill.stat-wpm .hud-val { color: var(--accent); }
+.hud-pill.stat-acc .hud-val { color: var(--good); }
+.hud-pill.hunk-pill b { color: var(--accent); }
+.hud-pill.stat-next {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.28);
+}
+.hud-key {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 11px;
+}
+.hud-token-preview {
+  margin-left: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  opacity: 0.85;
+}
+.kb {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+.hud-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  line-height: 1;
+}
+.icon-btn:hover { background: var(--btn-hover); border-color: var(--btn-hover-b); }
+
+.hunk-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.hud-nav-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+}
+.hud-nav-btn:hover:not(:disabled) {
+  color: var(--fg);
+  border-color: var(--accent);
+  background: var(--btn-hover);
+}
+.hud-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hud-btn {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 0.1s ease;
+  white-space: nowrap;
+}
+.hud-accept-hunk {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+}
+.hud-accept-hunk:hover {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: #22c55e;
+}
+.hud-accept-all {
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  border: 1px solid #22c55e;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.hud-accept-all:hover {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.hud-skip-btn {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+}
+.hud-skip-btn:hover { color: var(--fg); border-color: var(--accent); }
+.end-btn { padding: 4px 10px; font-size: 11.5px; }
 
 .split { display: flex; flex: 1; min-height: 0; }
 
@@ -346,7 +525,22 @@ input:focus { border-color: var(--accent); }
   padding: 4px 24px 4px 0;
   border-bottom: 1px solid var(--line);
 }
-.ln.cur { background: var(--cur-line); box-shadow: inset 2px 0 0 var(--accent); }
+.ln.cur {
+  background: var(--cur-line);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.ln.hunk-line {
+  background: rgba(56, 189, 248, 0.035);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+.ln.hunk-line:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+.ln.hunk-line.cur {
+  background: var(--cur-line);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
 
 /* Read-only neighbour lines: present so the change reads in context, but
    deliberately inert — nothing here is typed or scored. */
@@ -368,65 +562,124 @@ input:focus { border-color: var(--accent); }
 
 .lcode { tab-size: 4; -moz-tab-size: 4; }
 
-/* One colour for every source character, always. Typed-ness is carried
-   entirely by the background, so a character never looks like it was replaced
-   when you type it — which is the whole premise of tracing over source text. */
-.c, .p, .w, .s { color: var(--code); }
+/* Source characters: faint ghost watermark before typing, vibrant illuminated
+   syntax colors after typing, and highlighted target at cursor. */
+.p {
+  color: rgba(148, 163, 184, 0.28);
+  background: none;
+  transition: color 0.1s ease;
+}
+:root[data-theme="light"] .p {
+  color: rgba(15, 23, 42, 0.25);
+}
 
-.p { background: none; }
+/* Correct: illuminated with full syntax colors and soft green background tint */
+.c {
+  color: var(--fg);
+  background: var(--tint);
+  border-radius: 2px;
+  transition: background 0.08s ease, color 0.08s ease;
+}
 
-/* Correct: same glyph, soft green fill. --tint is the single knob for how loud
-   "you've typed this" is. */
-.c { background: var(--tint); border-radius: 2px; }
+/* Syntax highlighting illuminated upon typing */
+.c.syn-k { color: #f472b6; font-weight: 600; } /* keywords (def, return, class, if, import) */
+.c.syn-s { color: #4ade80; } /* strings ("...", '...') */
+.c.syn-f { color: #38bdf8; font-weight: 600; } /* function calls / definitions */
+.c.syn-c { color: #94a3b8; font-style: italic; } /* comments (# ..., // ...) */
+.c.syn-n { color: #fb923c; } /* numbers (123, 0.5) */
+.c.syn-b { color: #c084fc; font-weight: 600; } /* builtins / booleans (True, False, None, self) */
+.c.syn-t { color: #2dd4bf; } /* types (int, str, dict, Promise) */
+.c.syn-o { color: #cbd5e1; } /* operators / punctuation */
 
-/* Skipped: accepted untouched, so the glyph stays (it is written on save) but it
-   is dimmed and underlined — yours to read, not yours to have typed. */
+:root[data-theme="light"] .c.syn-k { color: #db2777; }
+:root[data-theme="light"] .c.syn-s { color: #16a34a; }
+:root[data-theme="light"] .c.syn-f { color: #0284c7; }
+:root[data-theme="light"] .c.syn-c { color: #64748b; }
+:root[data-theme="light"] .c.syn-n { color: #ea580c; }
+:root[data-theme="light"] .c.syn-b { color: #9333ea; }
+:root[data-theme="light"] .c.syn-t { color: #0d9488; }
+:root[data-theme="light"] .c.syn-o { color: #334155; }
+
+/* Skipped: accepted untouched, faint and underlined */
 .s {
   color: var(--fg-faint);
   background: none;
+  opacity: 0.5;
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
 }
 
-/* Wrong: the source character is preserved, the fill goes red, and the key you
-   actually pressed rides alongside it as a small annotation. */
-.w { background: var(--wrong-bg); border-radius: 2px; }
-.g { color: var(--wrong-fg); font-size: 0.82em; }
+/* Wrong: the source character is preserved with solid red alert */
+.w {
+  color: #ffffff;
+  background: var(--bad);
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.5);
+  animation: errShake 0.18s ease-in-out;
+  font-weight: 600;
+}
+@keyframes errShake {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-1.5px); }
+  70% { transform: translateX(1.5px); }
+}
+.g {
+  color: var(--wrong-fg);
+  font-size: 0.82em;
+  font-weight: 600;
+  margin-left: 1px;
+}
 
 /* Unedited text sharing a line with the change (before/after the hunk). */
 .lcode .ctx { color: var(--ctx); }
 
-/* The character under the cursor gets an explicit box, so it's never the one
-   you can't see. */
-.curc { outline: 1px solid var(--curc); outline-offset: 1px; }
+/* The character under the cursor gets an explicit glowing box */
+.curc {
+  outline: 1.5px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+.p.curc {
+  color: var(--fg);
+  background: rgba(56, 189, 248, 0.16);
+}
 
 .caret {
   display: inline-block;
   width: 2px;
-  height: 1.15em;
+  height: 1.18em;
   vertical-align: text-bottom;
   background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
   margin: 0 -1px;
-  animation: blink 1.1s steps(1) infinite;
+  animation: pulseCaret 1s ease-in-out infinite;
 }
-@keyframes blink { 50% { opacity: 0; } }
+@keyframes pulseCaret {
+  0%, 100% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0.25; transform: scaleY(0.95); }
+}
 @media (prefers-reduced-motion: reduce) {
   .caret { animation: none; }
   .pfill { transition: none; }
+  .w { animation: none; }
 }
 
 .foot {
   flex: 0 0 auto;
-  padding: 9px 16px;
+  padding: 8px 16px;
   border-top: 1px solid var(--line);
   background: var(--bg-2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: var(--fg-faint);
-  font-size: 12px;
+  font-size: 11.5px;
   display: flex;
+  align-items: center;
   gap: 16px;
 }
-.foot .esc { margin-left: auto; font-family: var(--mono); }
+.foot .esc { margin-left: auto; font-family: var(--mono); color: var(--fg-dim); }
 
 /* --- results -------------------------------------------------------------- */
 

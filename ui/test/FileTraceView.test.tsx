@@ -21,7 +21,7 @@ function ok(label: string, cond: boolean, detail = '') {
 
 /** Every source glyph, context or traceable, in document order. */
 const textOf = (html: string) =>
-  [...html.matchAll(/<span class="(?:ctx|[cpws](?: curc)?)">([^<]*)<\/span>/g)]
+  [...html.matchAll(/<span class="(?:ctx|[cpws])(?: [^"]*)?">([^<]*)<\/span>/g)]
     .map((m) => m[1] as string)
     .join('')
 

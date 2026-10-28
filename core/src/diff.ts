@@ -138,7 +138,7 @@ export function diffHunks(before: string, after: string): Hunk[] {
       : [coarse]
   }
 
-  const hunks: Hunk[] = []
+  const rawHunks: Hunk[] = []
   let current: Hunk | undefined
   let offset = 0
   let afterOffset = 0
@@ -152,7 +152,7 @@ export function diffHunks(before: string, after: string): Hunk[] {
     }
     if (!current) {
       current = { start: offset, afterStart: afterOffset, oldText: '', newText: '' }
-      hunks.push(current)
+      rawHunks.push(current)
     }
     if (op.kind === 'del') {
       current.oldText += op.text
@@ -163,7 +163,23 @@ export function diffHunks(before: string, after: string): Hunk[] {
     }
   }
 
-  return hunks
+  // Coalesce micro-hunks that are separated by small intra-line unchanged gaps (e.g. within a word)
+  if (rawHunks.length <= 1) return rawHunks
+
+  const coalesced: Hunk[] = [{ ...rawHunks[0]! }]
+  for (let i = 1; i < rawHunks.length; i++) {
+    const prev = coalesced[coalesced.length - 1]!
+    const curr = rawHunks[i]!
+    const gap = before.slice(prev.start + prev.oldText.length, curr.start)
+    if (!gap.includes('\n') && gap.length <= 8) {
+      prev.oldText += gap + curr.oldText
+      prev.newText += gap + curr.newText
+    } else {
+      coalesced.push({ ...curr })
+    }
+  }
+
+  return coalesced
 }
 
 /**

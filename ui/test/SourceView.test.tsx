@@ -51,7 +51,7 @@ function type(t: Trace, keys: string): Trace {
  * rendering of "you pressed Enter too early or too late".
  */
 const sourceOnly = (html: string) =>
-  [...html.matchAll(/<span class="[cpws](?: curc)?">([^<]*)<\/span>/g)]
+  [...html.matchAll(/<span class="[cpws](?: [^"]*)?">([^<]*)<\/span>/g)]
     .map((m) => m[1] as string)
     .join('')
 
@@ -109,8 +109,8 @@ console.log('\na backspace removes the annotation')
   press(t, 'a', 2100)
   const html = markup(t)
   ok('annotation is gone after the fix', !html.includes('class="g"'))
-  ok('the character is back to a plain correct span', /<span class="c">a<\/span>/.test(html))
-  ok('the untyped remainder is still there', /class="p curc">b<\/span>/.test(html))
+  ok('the character is back to a plain correct span', /<span class="c(?:\s+[^"]*)?">a<\/span>/.test(html))
+  ok('the untyped remainder is still there', /class="p(?:\s+[^"]*)? curc">b<\/span>/.test(html))
   ok('source is intact', sourceOnly(html) === 'ab', JSON.stringify(sourceOnly(html)))
 }
 
@@ -150,7 +150,7 @@ console.log('\nskipped lines keep their glyph but are marked')
   const t = type(createTrace('ab\ncd'), 'ab\n')
   skipLine(t, 2000)
   const html = markup(t)
-  ok('skipped chars render with the skip class', /<span class="s">cd<\/span>/.test(html))
+  ok('skipped chars render with the skip class', /<span class="s(?:\s+[^"]*)?">cd<\/span>/.test(html))
   ok('a skipped char is not a wrong char', !html.includes('class="w"'))
   ok('source is intact', sourceOnly(html) === 'abcd', JSON.stringify(sourceOnly(html)))
 }

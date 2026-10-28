@@ -111,6 +111,15 @@ function applyHunks(before: string, hunks: Hunk[]): string {
   ok('new file -> one pure insertion hunk', hs.length === 1 && hs[0]?.newText === 'one\ntwo\n', JSON.stringify(hs))
 }
 
+{
+  const before = 'print("FlowDo server is starting at http://127.0.0.1:5000")\n'
+  const after = 'print("FlowDo server is launching at http://127.0.0.1:5000")\n'
+  const hs = diffHunks(before, after)
+  ok('intra-word edit coalesces into one hunk', hs.length === 1, `got ${hs.length} hunks: ${JSON.stringify(hs)}`)
+  ok('coalesced hunk replaces start with launch', hs[0]?.oldText === 'start' && hs[0]?.newText === 'launch')
+  ok('coalesced hunk rebuilds after', applyHunks(before, hs) === after)
+}
+
 console.log('\ntraceContext (unedited surroundings)')
 
 {

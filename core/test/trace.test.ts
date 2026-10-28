@@ -1,5 +1,8 @@
 import {
   aggregateMetrics,
+  autoAdvanceLeadingIndent,
+  autoAdvanceNonTypable,
+  autocompleteLine,
   backspace,
   buildDoc,
   CORRECT,
@@ -8,6 +11,7 @@ import {
   isComplete,
   metrics,
   press,
+  recordError,
   SKIPPED,
   skipLine,
   tabFill,
@@ -16,6 +20,7 @@ import {
   typedText,
   WRONG,
 } from '../src/trace.js'
+import { tokenizeLine } from '../src/syntax.js'
 import { buildRuns } from '../src/tokenize.js'
 import { showChar } from '../src/format.js'
 
@@ -377,6 +382,72 @@ console.log('\n19. aggregateMetrics scores several hunks as one session')
   press(bad, 'x', 1000) // wrong on 'a'
   press(bad, 'b', 1200)
   ok('topOffendersAcross reads every trace', topOffendersAcross([a, bad]).some((o) => o.got === 'x'))
+}
+
+console.log('\n20. autoAdvanceNonTypable skips emojis and unicode symbols')
+{
+  const src = 'hello 👋 world 🚀'
+  const t = createTrace(src)
+  typeAll(t, 'hello ')
+  ok('cursor is at emoji', t.doc.text[t.cursor] !== 'w')
+  autoAdvanceNonTypable(t, 2000)
+  ok('cursor skipped emoji to space/world', t.doc.text.slice(t.cursor).startsWith(' world'))
+  press(t, ' ', 2100)
+  typeAll(t, 'world ')
+  autoAdvanceNonTypable(t, 2200)
+  ok('complete after skipping final emoji', isComplete(t))
+}
+
+console.log('\n21. autoAdvanceLeadingIndent consumes leading whitespace on newlines')
+{
+  const src = 'def init():\n    return True'
+  const t = createTrace(src)
+  typeAll(t, 'def init():')
+  press(t, '\n', 2000, 'newline')
+  autoAdvanceLeadingIndent(t, 2001)
+  ok('cursor auto-advanced past 4 leading spaces', t.doc.text.slice(t.cursor).startsWith('return'))
+  ok('auto-advanced spaces are marked CORRECT', t.states[t.doc.text.indexOf('r') - 1] === CORRECT)
+}
+
+console.log('\n22. autocompleteLine autocompletes rest of line on Tab')
+{
+  const src = 'x = 100\ny = 200\n'
+  const t = createTrace(src)
+  press(t, 'x', 1000)
+  autocompleteLine(t, 1100)
+  ok('cursor jumped to next line after Tab autocomplete', t.cursor === src.indexOf('y'))
+  ok('completed line characters marked CORRECT', t.states[src.indexOf('=')] === CORRECT)
+}
+
+console.log('\n23. recordError locks cursor on error (Stop on Error mode)')
+{
+  const src = 'hello'
+  const t = createTrace(src)
+  press(t, 'h', 1000)
+  ok('cursor moved to 1', t.cursor === 1)
+  recordError(t, 'z', 1100)
+  ok('cursor stays locked at 1 on typo', t.cursor === 1)
+  ok('state at cursor is WRONG', t.states[1] === WRONG)
+  ok('wrongAt records pressed char', t.wrongAt.get(1) === 'z')
+  backspace(t, 1200)
+  ok('backspace clears WRONG state at cursor', t.states[1] === 0)
+  ok('wrongAt is cleared', !t.wrongAt.has(1))
+  press(t, 'e', 1300)
+  ok('cursor advances after fixing error', t.cursor === 2)
+}
+
+console.log('\n24. tokenizeLine extracts syntax tags for Python and JS/TS')
+{
+  const pyLine = 'def hello(name: str): # comment'
+  const pyTags = tokenizeLine(pyLine, 'test.py')
+  ok('keyword def tagged with k', pyTags[0] === 'k' && pyTags[2] === 'k')
+  ok('function hello tagged with f', pyTags[4] === 'f' && pyTags[8] === 'f')
+  ok('comment tagged with c', pyTags[pyLine.indexOf('#')] === 'c')
+
+  const jsLine = 'const val = "world";'
+  const jsTags = tokenizeLine(jsLine, 'main.ts')
+  ok('keyword const tagged with k', jsTags[0] === 'k')
+  ok('string tagged with s', jsTags[jsLine.indexOf('"')] === 's')
 }
 
 console.log(failures === 0 ? '\nAll checks passed.\n' : `\n${failures} FAILED\n`)

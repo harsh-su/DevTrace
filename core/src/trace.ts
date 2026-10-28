@@ -169,7 +169,80 @@ export function press(t: Trace, got: string, now: number, kind: Keystroke['kind'
   return true
 }
 
+export function isNonTypableUnicode(text: string, index = 0): number {
+  if (!text || index >= text.length) return 0
+  const code = text.codePointAt(index) ?? 0
+  if (code > 127) {
+    const glyph = String.fromCodePoint(code)
+    if (/[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE00-\uFE0F\u200D\u20E3\u2500-\u2BFF]/u.test(glyph)) {
+      return glyph.length
+    }
+  }
+  return 0
+}
+
+/** Automatically advance past emojis or non-typable unicode glyphs. */
+export function autoAdvanceNonTypable(t: Trace, now: number): void {
+  while (!isComplete(t)) {
+    const skipLen = isNonTypableUnicode(t.doc.text, t.cursor)
+    if (skipLen > 0) {
+      for (let k = 0; k < skipLen; k++) {
+        const ch = t.doc.text[t.cursor] as string
+        press(t, ch, now, 'type')
+      }
+    } else {
+      break
+    }
+  }
+}
+
+/** Automatically advance past leading indentation spaces/tabs on a new line. */
+export function autoAdvanceLeadingIndent(t: Trace, now: number): void {
+  while (!isComplete(t)) {
+    const ch = t.doc.text[t.cursor] as string
+    if (ch === ' ' || ch === '\t') {
+      press(t, ch, now, 'indent')
+    } else {
+      break
+    }
+  }
+  autoAdvanceNonTypable(t, now)
+}
+
+/** Autocomplete the rest of the current line with target code. */
+export function autocompleteLine(t: Trace, now: number): boolean {
+  if (isComplete(t)) return false
+  const curLine = t.doc.lineOf[t.cursor] as number
+  while (!isComplete(t) && (t.doc.lineOf[t.cursor] as number) === curLine) {
+    const ch = t.doc.text[t.cursor] as string
+    press(t, ch, now, 'type')
+  }
+  autoAdvanceLeadingIndent(t, now)
+  return true
+}
+
+/** Record a typo at the current cursor without advancing (Stop on Error mode). */
+export function recordError(t: Trace, got: string, now: number): void {
+  if (isComplete(t)) return
+  const i = t.cursor
+  const exp = t.doc.text[i] as string
+  t.states[i] = WRONG
+  t.wrongAt.set(i, got)
+  t.keystrokes.push({ i, got, exp, ok: false, t: now, kind: 'type' })
+  if (t.firstT === null) t.firstT = now
+  t.lastT = now
+}
+
 export function backspace(t: Trace, now: number): boolean {
+  // If the cursor is currently on an error character (from stop-on-error), clear it first
+  if (t.states[t.cursor] === WRONG) {
+    const i = t.cursor
+    t.states[i] = PENDING
+    t.wrongAt.delete(i)
+    t.keystrokes.push({ i, got: '', exp: t.doc.text[i] as string, ok: true, t: now, kind: 'back' })
+    t.lastT = now
+    return true
+  }
   if (t.cursor === 0) return false
   const i = t.cursor - 1
   t.states[i] = PENDING

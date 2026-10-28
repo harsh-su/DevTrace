@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { buildRuns, stateClass } from '@devtrace/core'
+import { buildRuns, stateClass, tokenizeLine } from '@devtrace/core'
 import type { CharState } from '@devtrace/core'
 
 export interface LineProps {
@@ -17,10 +17,16 @@ export interface LineProps {
   prefix?: string
   /** Read-only text that follows the trace on the last traced line. */
   suffix?: string
+  /** Whether this line belongs to a changed hunk. */
+  isHunk?: boolean
+  /** Called when this line is clicked. */
+  onClick?: () => void
+  /** Language identifier or file path for syntax highlighting. */
+  language?: string
 }
 
 /**
- * Memoized on (v, isCur, caret). `states` and `wrongAt` are stable mutable
+ * Memoized on (v, isCur, caret, isHunk). `states` and `wrongAt` are stable mutable
  * refs, so the shallow compare is honest: lines you aren't touching never
  * re-render, and a keystroke costs two line updates instead of one per line in
  * the file.
@@ -36,17 +42,23 @@ export const Line = memo(function Line({
   v,
   prefix,
   suffix,
+  isHunk,
+  onClick,
+  language,
 }: LineProps) {
-  const runs = buildRuns(text, states, off, isCur ? caret : -1, wrongAt)
+  const syntaxTags = tokenizeLine(text, language)
+  const runs = buildRuns(text, states, off, isCur ? caret : -1, wrongAt, syntaxTags)
   void v
+  const clsName = isCur ? 'ln cur' : isHunk ? 'ln hunk-line' : 'ln'
   return (
-    <div className={isCur ? 'ln cur' : 'ln'}>
+    <div className={clsName} onClick={onClick}>
       <span className="lnum">{num}</span>
       <span className="lcode">
         {prefix ? <span className="ctx">{prefix}</span> : null}
         {runs.map((r, i) => {
           if (r.caret) return <i key={i} className="caret" />
-          const cls = r.got ? 'g' : stateClass(r.c as CharState) + (r.cur ? ' curc' : '')
+          const synCls = r.syn ? ` syn-${r.syn}` : ''
+          const cls = r.got ? 'g' : stateClass(r.c as CharState) + (r.cur ? ' curc' : '') + synCls
           return (
             <span key={i} className={cls}>
               {r.t}
@@ -88,6 +100,8 @@ export interface SourceViewProps {
   linePrefix?: string
   /** Text on the last traced line that follows the change. */
   lineSuffix?: string
+  /** Language identifier or file path for syntax highlighting. */
+  language?: string
 }
 
 export default function SourceView({
@@ -104,6 +118,7 @@ export default function SourceView({
   contextAfter = [],
   linePrefix,
   lineSuffix,
+  language,
 }: SourceViewProps) {
   const curLine = cursor < lineOf.length ? (lineOf[cursor] as number) : lines.length - 1
   const caretCol = cursor - (lineStarts[curLine] ?? 0)
@@ -129,6 +144,7 @@ export default function SourceView({
           v={versions[li] as number}
           prefix={li === 0 ? linePrefix : undefined}
           suffix={li === last ? lineSuffix : undefined}
+          language={language}
         />
       ))}
 

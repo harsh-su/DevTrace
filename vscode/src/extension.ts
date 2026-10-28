@@ -43,7 +43,8 @@ const hooks = {
     const label = TraceSession.active?.sessionLabel ?? 'session'
     lastResults = { trace: t, metrics: m, label, completed }
     statusItem.text = '$(keyboard) DevTrace'
-    statusItem.tooltip = 'Click to show the last results'
+    statusItem.command = 'devtrace.openSidebar'
+    statusItem.tooltip = 'DevTrace: Click to open Pending Changes sidebar'
     ResultsPanel.show(t, m, label, completed)
   },
 }
@@ -351,11 +352,15 @@ async function setStaging(enabled: boolean): Promise<void> {
 export function activate(context: vscode.ExtensionContext): void {
   extensionUri = context.extensionUri
   statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-  statusItem.command = 'devtrace.endSession'
+  statusItem.command = 'devtrace.openSidebar'
   statusItem.text = '$(keyboard) DevTrace'
+  statusItem.tooltip = 'DevTrace: Click to open Pending Changes sidebar'
+  statusItem.show()
 
   TracePanel.onProgress = (pct) => {
     statusItem.text = `$(keyboard) DevTrace ${pct}%`
+    statusItem.command = 'devtrace.endSession'
+    statusItem.tooltip = 'Tracing — click (or Esc) to end session'
     statusItem.show()
   }
 
@@ -371,6 +376,12 @@ export function activate(context: vscode.ExtensionContext): void {
     treeProvider.refresh()
     const n = store.list().length
     treeView.badge = n > 0 ? { value: n, tooltip: `${n} pending change${n === 1 ? '' : 's'}` } : undefined
+    if (!TraceSession.active) {
+      statusItem.text = n > 0 ? `$(keyboard) DevTrace (${n})` : '$(keyboard) DevTrace'
+      statusItem.command = 'devtrace.openSidebar'
+      statusItem.tooltip = 'DevTrace: Click to open Pending Changes sidebar'
+      statusItem.show()
+    }
   })
   void (async () => {
     await ensureStagingFromSetting()
@@ -441,12 +452,53 @@ export function activate(context: vscode.ExtensionContext): void {
     ResultsPanel.show(lastResults.trace, lastResults.metrics, lastResults.label, lastResults.completed)
   })
 
-  const tracePending = vscode.commands.registerCommand('devtrace.pending.trace', async (id: string) => {
+function extractId(arg: unknown): string | undefined {
+  if (typeof arg === 'string') return arg
+  if (arg && typeof arg === 'object' && 'entry' in arg) {
+    const item = arg as { entry?: { change?: { id?: string } } }
+    return item.entry?.change?.id
+  }
+  return undefined
+}
+
+async function applyDirectly(change: StagedChange): Promise<void> {
+  const uri = vscode.Uri.file(change.file)
+  const fullBytes = Buffer.from(change.after, 'utf8')
+  await vscode.workspace.fs.writeFile(uri, fullBytes)
+}
+
+  const tracePending = vscode.commands.registerCommand('devtrace.pending.trace', async (arg: unknown) => {
+    const id = extractId(arg)
+    if (!id) return
     const entry = store.find(id)
     if (entry) await traceEntry(entry)
   })
 
-  const discardPending = vscode.commands.registerCommand('devtrace.pending.discard', async (id: string) => {
+  const acceptPending = vscode.commands.registerCommand('devtrace.pending.accept', async (arg: unknown) => {
+    const id = extractId(arg)
+    if (!id) return
+    const entry = store.find(id)
+    if (!entry) return
+    await applyDirectly(entry.change)
+    await store.remove(id)
+    void vscode.window.showInformationMessage(
+      `DevTrace: Accepted changes for ${vscode.workspace.asRelativePath(entry.change.file, false)}.`,
+    )
+  })
+
+  const acceptAllPending = vscode.commands.registerCommand('devtrace.pending.acceptAll', async () => {
+    const list = store.list()
+    if (list.length === 0) return
+    for (const entry of list) {
+      await applyDirectly(entry.change)
+      await store.remove(entry.change.id)
+    }
+    void vscode.window.showInformationMessage(`DevTrace: Accepted all ${list.length} pending changes.`)
+  })
+
+  const discardPending = vscode.commands.registerCommand('devtrace.pending.discard', async (arg: unknown) => {
+    const id = extractId(arg)
+    if (!id) return
     const entry = store.find(id)
     if (!entry) return
     const rel = vscode.workspace.asRelativePath(entry.change.file, false)
@@ -458,7 +510,9 @@ export function activate(context: vscode.ExtensionContext): void {
     if (pick === 'Discard') await store.remove(entry.change.id)
   })
 
-  const revealPending = vscode.commands.registerCommand('devtrace.pending.reveal', async (id: string) => {
+  const revealPending = vscode.commands.registerCommand('devtrace.pending.reveal', async (arg: unknown) => {
+    const id = extractId(arg)
+    if (!id) return
     const entry = store.find(id)
     if (!entry) return
     try {
@@ -553,6 +607,65 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   })
 
+  const setupAntigravity = vscode.commands.registerCommand('devtrace.setupAntigravity', async () => {
+    const folders = vscode.workspace.workspaceFolders
+    if (!folders || folders.length === 0) {
+      void vscode.window.showErrorMessage('DevTrace: please open a workspace folder first.')
+      return
+    }
+    const folder = folders[0] as vscode.WorkspaceFolder
+    const agentsDir = vscode.Uri.joinPath(folder.uri, '.agents')
+    const rulesDir = vscode.Uri.joinPath(agentsDir, 'rules')
+    const hookSource = vscode.Uri.joinPath(context.extensionUri, 'assets', 'antigravity-devtrace.mjs')
+    const hookTarget = vscode.Uri.joinPath(agentsDir, 'devtrace-hook.mjs')
+    const hooksJsonTarget = vscode.Uri.joinPath(agentsDir, 'hooks.json')
+    const ruleTarget = vscode.Uri.joinPath(rulesDir, 'devtrace.md')
+
+    try {
+      await vscode.workspace.fs.createDirectory(rulesDir)
+      const hookBytes = await vscode.workspace.fs.readFile(hookSource)
+      await vscode.workspace.fs.writeFile(hookTarget, hookBytes)
+
+      const hooksConfig = {
+        devtrace: {
+          PreToolUse: [
+            {
+              matcher: 'write_to_file|replace_file_content|multi_replace_file_content',
+              hooks: [
+                {
+                  type: 'command',
+                  command: 'node devtrace-hook.mjs',
+                  timeout: 15,
+                },
+              ],
+            },
+          ],
+        },
+      }
+      await vscode.workspace.fs.writeFile(
+        hooksJsonTarget,
+        Buffer.from(JSON.stringify(hooksConfig, null, 2), 'utf8'),
+      )
+
+      const ruleContent = `# DevTrace Mode Active
+When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_replace_file_content\`) return a message starting with "DevTrace:", treat this result as EXPECTED SUCCESS.
+- The proposed change has been safely staged into \`.devtrace/pending/\` for the developer to type by hand.
+- Do NOT retry the edit, do not attempt alternative editing tools, and do not apologize or complain that the file is unchanged.
+- Proceed with subsequent steps or inform the developer that the code is staged for tracing in DevTrace.
+`
+      await vscode.workspace.fs.writeFile(ruleTarget, Buffer.from(ruleContent, 'utf8'))
+
+      // Enable staging in workspace
+      await setStaging(true)
+
+      void vscode.window.showInformationMessage(
+        'DevTrace: Google Antigravity integration configured! Proposed edits will now be staged for hand-typing.',
+      )
+    } catch (err) {
+      void vscode.window.showErrorMessage(`DevTrace: setup failed — ${(err as Error).message}`)
+    }
+  })
+
   const installPlugin = vscode.commands.registerCommand('devtrace.installOpencodePlugin', async () => {
     const source = vscode.Uri.joinPath(context.extensionUri, 'assets', 'opencode-plugin.ts')
     const pluginsDir = vscode.Uri.file(path.join(os.homedir(), '.config', 'opencode', 'plugins'))
@@ -575,7 +688,16 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   })
 
+  const openSidebar = vscode.commands.registerCommand('devtrace.openSidebar', async () => {
+    try {
+      await vscode.commands.executeCommand('workbench.view.extension.devtrace')
+    } catch {
+      await vscode.commands.executeCommand('devtrace.pending.focus')
+    }
+  })
+
   context.subscriptions.push(
+    openSidebar,
     statusItem,
     store,
     treeProvider,
@@ -590,6 +712,8 @@ export function activate(context: vscode.ExtensionContext): void {
     endSession,
     showResults,
     tracePending,
+    acceptPending,
+    acceptAllPending,
     discardPending,
     revealPending,
     traceAllPending,
@@ -598,6 +722,7 @@ export function activate(context: vscode.ExtensionContext): void {
     enableStaging,
     disableStaging,
     configListener,
+    setupAntigravity,
     installPlugin,
     traceTour,
     traceNextTourStep,

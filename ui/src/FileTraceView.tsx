@@ -19,6 +19,10 @@ export interface FileTraceViewProps {
   /** Cursor of the active hunk, mapped into file offsets, or -1 when idle. */
   cursorAfter: number
   scrollerRef: React.RefObject<HTMLDivElement | null>
+  /** Optional click handler when a line is clicked */
+  onLineClick?: (lineIndex: number) => void
+  /** Language identifier or file path for syntax highlighting. */
+  language?: string
 }
 
 /**
@@ -36,6 +40,8 @@ export default function FileTraceView({
   versions,
   cursorAfter,
   scrollerRef,
+  onLineClick,
+  language,
 }: FileTraceViewProps) {
   const last = lines.length - 1
   const curLine = cursorAfter < 0 ? -1 : cursorAfter < lineOf.length ? (lineOf[cursorAfter] as number) : last
@@ -43,19 +49,33 @@ export default function FileTraceView({
 
   return (
     <div className="source" ref={scrollerRef}>
-      {lines.map((text, li) => (
-        <Line
-          key={li}
-          text={text}
-          off={lineStarts[li] as number}
-          states={states}
-          wrongAt={wrongAt}
-          num={li + 1}
-          isCur={li === curLine}
-          caret={caretCol}
-          v={versions[li] as number}
-        />
-      ))}
+      {lines.map((text, li) => {
+        const off = lineStarts[li] as number
+        let isHunk = false
+        const len = text.length
+        for (let c = 0; c < len; c++) {
+          if (states[off + c] !== 4) {
+            isHunk = true
+            break
+          }
+        }
+        return (
+          <Line
+            key={li}
+            text={text}
+            off={off}
+            states={states}
+            wrongAt={wrongAt}
+            num={li + 1}
+            isCur={li === curLine}
+            caret={caretCol}
+            v={versions[li] as number}
+            isHunk={isHunk}
+            onClick={() => onLineClick?.(li)}
+            language={language}
+          />
+        )
+      })}
     </div>
   )
 }
