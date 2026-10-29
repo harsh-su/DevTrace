@@ -1,21 +1,23 @@
-// Copies the single opencode-plugin source into the extension so it can be
-// shipped in the VSIX and installed with one command. One source of truth:
-// edit opencode-plugin/src/index.ts, this runs on every build.
+// Copies plugin sources into the extension assets so they can be
+// shipped in the VSIX and installed with one command.
 const { copyFileSync, mkdirSync, existsSync } = require('node:fs')
 const { join, dirname } = require('node:path')
 
-const src = join(__dirname, '..', '..', 'opencode-plugin', 'src', 'index.ts')
-const dest = join(__dirname, '..', 'assets', 'opencode-plugin.ts')
+const assetsDir = join(__dirname, '..', 'assets')
+mkdirSync(assetsDir, { recursive: true })
 
-if (!existsSync(src)) {
-  if (existsSync(dest)) {
-    console.warn(`[copy-plugin] source not found: ${src}; keeping existing ${dest}`)
-    process.exit(0)
-  }
-  console.error(`[copy-plugin] source not found: ${src}`)
-  process.exit(1)
+// 1. OpenCode plugin
+const openCodeSrc = join(__dirname, '..', '..', 'opencode-plugin', 'src', 'index.ts')
+const openCodeDest = join(assetsDir, 'opencode-plugin.ts')
+if (existsSync(openCodeSrc)) {
+  copyFileSync(openCodeSrc, openCodeDest)
+  console.log(`[copy-plugin] ${openCodeSrc} -> ${openCodeDest}`)
 }
 
-mkdirSync(dirname(dest), { recursive: true })
-copyFileSync(src, dest)
-console.log(`[copy-plugin] ${src} -> ${dest}`)
+// 2. Antigravity hook
+const agSrc = join(__dirname, '..', '..', 'antigravity', 'dist', 'devtrace-hook.mjs')
+const agDest = join(assetsDir, 'antigravity-devtrace.mjs')
+if (existsSync(agSrc)) {
+  copyFileSync(agSrc, agDest)
+  console.log(`[copy-plugin] ${agSrc} -> ${agDest}`)
+}

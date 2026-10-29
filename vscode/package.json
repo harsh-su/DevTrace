@@ -55,20 +55,28 @@
     "viewsWelcome": [
       {
         "view": "devtrace.tour",
-        "contents": "No learning path yet. Ask OpenCode to \u201ctour me through this project\u201d and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:devtrace.tour.next)"
+        "contents": "No learning path yet. Ask OpenCode to “tour me through this project” and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:devtrace.tour.next)"
       },
       {
         "view": "devtrace.pending",
         "when": "!devtrace.stagingEnabled",
-        "contents": "DevTrace is off. Turn it on and every OpenCode edit will be staged here for you to type by hand.\n[Turn on DevTrace](command:devtrace.enableStaging)"
+        "contents": "DevTrace is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on DevTrace](command:devtrace.enableStaging)\n[Setup Google Antigravity Integration](command:devtrace.setupAntigravity)"
       },
       {
         "view": "devtrace.pending",
         "when": "devtrace.stagingEnabled",
-        "contents": "No pending changes. When OpenCode proposes an edit, it waits here for you to type it by hand.\n[Trace a selection](command:devtrace.traceSelection)"
+        "contents": "No pending changes. When Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:devtrace.traceSelection)\n[Setup Antigravity Integration](command:devtrace.setupAntigravity)"
       }
     ],
     "commands": [
+      {
+        "command": "devtrace.openSidebar",
+        "title": "DevTrace: Open Sidebar (Pending Changes)"
+      },
+      {
+        "command": "devtrace.setupAntigravity",
+        "title": "DevTrace: Setup Google Antigravity Integration"
+      },
       {
         "command": "devtrace.traceSelection",
         "title": "DevTrace: Trace Selection"
@@ -128,6 +136,18 @@
         "title": "Refresh Learning Path",
         "category": "DevTrace",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "devtrace.pending.accept",
+        "title": "Accept Change (Write to Disk)",
+        "category": "DevTrace",
+        "icon": "$(check)"
+      },
+      {
+        "command": "devtrace.pending.acceptAll",
+        "title": "Accept All Pending Changes",
+        "category": "DevTrace",
+        "icon": "$(check-all)"
       },
       {
         "command": "devtrace.pending.trace",
@@ -250,19 +270,24 @@
           "group": "navigation@0"
         },
         {
-          "command": "devtrace.pending.traceAll",
+          "command": "devtrace.pending.acceptAll",
           "when": "view == devtrace.pending",
           "group": "navigation@1"
         },
         {
-          "command": "devtrace.pending.refresh",
+          "command": "devtrace.pending.traceAll",
           "when": "view == devtrace.pending",
           "group": "navigation@2"
         },
         {
-          "command": "devtrace.pending.clear",
+          "command": "devtrace.pending.refresh",
           "when": "view == devtrace.pending",
           "group": "navigation@3"
+        },
+        {
+          "command": "devtrace.pending.clear",
+          "when": "view == devtrace.pending",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -270,6 +295,11 @@
           "command": "devtrace.tour.reveal",
           "when": "view == devtrace.tour && viewItem == devtrace.tour.done",
           "group": "1_open"
+        },
+        {
+          "command": "devtrace.pending.accept",
+          "when": "view == devtrace.pending && viewItem == devtrace.pending",
+          "group": "inline@0"
         },
         {
           "command": "devtrace.pending.trace",

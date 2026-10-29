@@ -7,6 +7,8 @@ dist
 vscode/dist
 vscode/out
 vscode/assets/opencode-plugin.ts
+vscode/assets/antigravity-devtrace.mjs
+.agents/
 opencode-plugin/dist
 opencode-plugin/*.tgz
 *.vsix

@@ -14,12 +14,6 @@ export interface TraceInputHandlers {
   onFeedback?: (kind: FeedbackKind) => void
 }
 
-function lineAt(t: Trace, off: number): number {
-  if (t.doc.text.length === 0) return 0
-  const o = Math.max(0, Math.min(off, t.doc.text.length - 1))
-  return t.doc.lineOf[o] as number
-}
-
 /**
  * The keyboard contract shared by every DevTrace surface. It is deliberately
  * host-agnostic: the browser tab and the VS Code webview both attach it and get
@@ -35,8 +29,8 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
       if (!t) return
       advanceSkipped(t)
 
-      // Ctrl/Cmd+Enter jumps past the current line without typing it. Handled
-      // before the modifier guard below, which would otherwise swallow it.
+    const onKey = (e: KeyboardEvent) => {
+      // Ctrl/Cmd+Enter jumps past the current line without typing it.
       if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.key === 'NumpadEnter')) {
         e.preventDefault()
         if (isComplete(t)) return
@@ -75,9 +69,7 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
       const before = t.cursor
 
       if (e.key === 'Tab') {
-        const li = lineAt(t, t.cursor)
-        const soFar = t.doc.text.slice(t.doc.lineStarts[li] as number, t.cursor)
-        for (const ch of tabFill(soFar)) press(t, ch, now, 'tab')
+        autocompleteLine(t, now)
         onFeedback?.('tab')
         onBump?.(before, t.cursor)
         if (isComplete(t)) onComplete?.(t)
@@ -85,12 +77,26 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
       }
 
       if (e.key === 'Enter') {
-        press(t, '\n', now, 'newline')
-        onFeedback?.('enter')
+        const expected = t.doc.text[t.cursor]
+        if (expected === '\n') {
+          press(t, '\n', now, 'newline')
+          autoAdvanceLeadingIndent(t, now)
+          onFeedback?.('enter')
+        } else {
+          recordError(t, '\n', now)
+          onFeedback?.('err')
+        }
       } else if (e.key.length === 1) {
         const expected = t.doc.text[t.cursor]
-        const ok = press(t, e.key, now)
-        if (ok) onFeedback?.(e.key === expected ? 'ok' : 'err')
+        if (e.key === expected) {
+          press(t, e.key, now)
+          autoAdvanceNonTypable(t, now)
+          onFeedback?.('ok')
+        } else {
+          // Stop on error: records error without runaway cursor jump
+          recordError(t, e.key, now)
+          onFeedback?.('err')
+        }
       } else {
         return
       }

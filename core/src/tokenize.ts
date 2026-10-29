@@ -15,6 +15,8 @@ export interface Run {
   /** This run holds the character under the cursor. */
   cur?: boolean
   caret?: boolean
+  /** Semantic syntax tag: 'k', 's', 'f', 'c', 'n', 'b', 't', 'o' */
+  syn?: string
 }
 
 /**
@@ -30,6 +32,7 @@ export function buildRuns(
   /** Caret column, or -1 when this line doesn't hold the caret. */
   caretCol: number,
   wrongAt: Map<number, string>,
+  syntaxTags?: string[],
 ): Run[] {
   // An empty line still needs a placeholder so the caret can sit on it, but only
   // when the caret is actually on this line — otherwise a whole-file view would
@@ -52,17 +55,24 @@ export function buildRuns(
   while (i < text.length) {
     placeCaret(i, states[off + i] as CharState)
     const st = states[off + i] as CharState
+    const syn = syntaxTags ? (syntaxTags[i] ?? '') : ''
 
     let j = i + 1
     // Wrong runs deliberately do not collapse: each source character needs its
     // own annotation paired to it, and they need to stay separable.
     if (st !== WRONG) {
-      while (j < text.length && states[off + j] === st) j++
+      while (
+        j < text.length &&
+        states[off + j] === st &&
+        (!syntaxTags || syntaxTags[j] === syn)
+      ) {
+        j++
+      }
     }
 
     if (st === WRONG) {
       for (let k = i; k < j; k++) {
-        out.push({ t: text[k] as string, c: WRONG, cur: k === caretCol })
+        out.push({ t: text[k] as string, c: WRONG, cur: k === caretCol, syn: syn || undefined })
         const pressed = wrongAt.get(off + k)
         if (pressed !== undefined) {
           out.push({ t: showChar(pressed), c: WRONG, got: true })
@@ -71,10 +81,11 @@ export function buildRuns(
     } else {
       const cut = caretCol > i && caretCol < j ? caretCol : j
       const tail = states[off + cut] as CharState
-      out.push({ t: text.slice(i, cut), c: st, cur: i === caretCol })
+      out.push({ t: text.slice(i, cut), c: st, syn: syn || undefined, cur: i === caretCol })
       if (cut < j) {
         placeCaret(cut, tail)
-        out.push({ t: text.slice(cut, j), c: tail, cur: true })
+        const tailSyn = syntaxTags ? (syntaxTags[cut] ?? '') : ''
+        out.push({ t: text.slice(cut, j), c: tail, syn: tailSyn || undefined, cur: true })
       }
     }
     i = j

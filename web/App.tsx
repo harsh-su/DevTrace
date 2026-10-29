@@ -7,10 +7,14 @@ import {
   ThemeToggle,
   useTheme,
   useTraceInput,
+  initAudio,
+  isMuted,
+  playClick,
+  playComplete,
+  setMuted,
   type FeedbackKind,
 } from '@devtrace/ui'
 import { createTrace, finalizeAll, metrics, topOffenders, type Metrics, type Trace } from '@devtrace/core'
-import { initAudio, isMuted, playClick, playComplete, setMuted } from './lib/click.js'
 
 type Screen = 'pick' | 'browse' | 'trace' | 'done'
 
@@ -252,26 +256,74 @@ export default function App() {
     ? Math.round((trace.cursor / trace.doc.text.length) * 100)
     : 0
 
+  let correctCount = 0
+  let errCount = 0
+  let firstT: number | null = null
+  let lastT: number | null = null
+  for (const k of trace.keystrokes) {
+    if (k.ok) correctCount++
+    else errCount++
+    if (firstT === null || k.t < firstT) firstT = k.t
+    if (lastT === null || k.t > lastT) lastT = k.t
+  }
+  const elapsedMin = firstT !== null && lastT !== null && lastT > firstT ? (lastT - firstT) / 60000 : 0
+  const liveWpm = elapsedMin > 0 ? Math.round((correctCount / 5) / elapsedMin) : 0
+  const liveAcc = correctCount + errCount > 0 ? Math.round((correctCount / (correctCount + errCount)) * 100) : 100
+
+  let nextKeyHint = ''
+  if (trace.cursor < trace.doc.text.length) {
+    const ch = trace.doc.text[trace.cursor]
+    if (ch === ' ') nextKeyHint = '␣ Space'
+    else if (ch === '\t') nextKeyHint = '⇥ Tab'
+    else if (ch === '\n') nextKeyHint = '↵ Enter'
+    else nextKeyHint = ch
+  }
+
   return (
     <div className="tracing">
       <header className="topbar">
-        <button className="ghost" onClick={() => setScreen('browse')}>
-          ← Files
-        </button>
-        <span className="chunklabel">{chunkLabel}</span>
-        <div className="progress">
-          <div className="pbar">
-            <div className="pfill" style={{ width: `${progress}%` }} />
-          </div>
-          <span className="pnum">{progress}%</span>
+        <div className="chunk-info">
+          <button className="ghost" onClick={() => setScreen('browse')}>
+            ← Files
+          </button>
+          <span className="file-badge" title={chunkLabel}>📄 {chunkLabel}</span>
         </div>
-        <button className="ghost" onClick={toggleMute}>
-          {muted ? '🔇' : '🔊'}
-        </button>
-        <ThemeToggle theme={theme} onToggle={toggle} />
-        <button className="ghost" onClick={abandon}>
-          End
-        </button>
+
+        <div className="hud-stats">
+          <div className="hud-pill stat-wpm" title="Live typing speed">
+            <span className="hud-label">⚡ WPM</span>
+            <span className="hud-val">{liveWpm}</span>
+          </div>
+
+          <div className="hud-pill stat-acc" title="Live typing accuracy">
+            <span className="hud-label">🎯 ACC</span>
+            <span className="hud-val">{liveAcc}%</span>
+          </div>
+
+          {nextKeyHint && (
+            <div className="hud-pill stat-next" title="Next character to type">
+              <span className="hud-label">NEXT</span>
+              <span className="hud-key">{nextKeyHint}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="hud-controls">
+          <div className="progress">
+            <div className="pbar">
+              <div className="pfill" style={{ width: `${progress}%` }} />
+            </div>
+            <span className="pnum">{progress}%</span>
+          </div>
+
+          <button className="icon-btn" onClick={toggleMute} title={muted ? 'Unmute typing sounds' : 'Mute typing sounds'}>
+            {muted ? '🔇' : '🔊'}
+          </button>
+          <ThemeToggle theme={theme} onToggle={toggle} />
+          <button className="ghost end-btn" onClick={abandon}>
+            End
+          </button>
+        </div>
       </header>
 
       <SourceView

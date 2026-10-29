@@ -15,17 +15,10 @@ export interface MultiTraceInputHandlers {
   onFeedback?: (kind: FeedbackKind) => void
 }
 
-function lineAt(t: Trace, off: number): number {
-  if (t.doc.text.length === 0) return 0
-  const o = Math.max(0, Math.min(off, t.doc.text.length - 1))
-  return t.doc.lineOf[o] as number
-}
-
 /**
  * The keyboard contract for a file-wise trace: several hunks of one file are
  * scored together, but only the active hunk accepts input. Completing a hunk
  * hands off to the next one; completing the last one finishes the session.
- * The keyboard behaviour per hunk is identical to `useTraceInput`.
  */
 export function useMultiTraceInput(
   active: boolean,
@@ -37,6 +30,17 @@ export function useMultiTraceInput(
 
   useEffect(() => {
     if (!active) return
+    const t = traces[activeIndex]
+    if (t) {
+      // Auto-advance any emojis or non-typable symbols waiting at the cursor on entry
+      const now = performance.now()
+      const before = t.cursor
+      autoAdvanceNonTypable(t, now)
+      if (t.cursor !== before) {
+        onBump?.(activeIndex, before, t.cursor)
+      }
+    }
+
     const onKey = (e: KeyboardEvent) => {
       // Escape always exits, even when the change has no typeable hunk.
       if (e.key === 'Escape') {
@@ -87,10 +91,9 @@ export function useMultiTraceInput(
       e.preventDefault()
       const before = t.cursor
 
+      // Tab autocompletes the rest of the line with target code
       if (e.key === 'Tab') {
-        const li = lineAt(t, t.cursor)
-        const soFar = t.doc.text.slice(t.doc.lineStarts[li] as number, t.cursor)
-        for (const ch of tabFill(soFar)) press(t, ch, now, 'tab')
+        autocompleteLine(t, now)
         onFeedback?.('tab')
         onBump?.(activeIndex, before, t.cursor)
         done()
@@ -98,12 +101,26 @@ export function useMultiTraceInput(
       }
 
       if (e.key === 'Enter') {
-        press(t, '\n', now, 'newline')
-        onFeedback?.('enter')
+        const expected = t.doc.text[t.cursor]
+        if (expected === '\n') {
+          press(t, '\n', now, 'newline')
+          autoAdvanceLeadingIndent(t, now)
+          onFeedback?.('enter')
+        } else {
+          recordError(t, '\n', now)
+          onFeedback?.('err')
+        }
       } else if (e.key.length === 1) {
         const expected = t.doc.text[t.cursor]
-        const ok = press(t, e.key, now)
-        if (ok) onFeedback?.(e.key === expected ? 'ok' : 'err')
+        if (e.key === expected) {
+          press(t, e.key, now)
+          autoAdvanceNonTypable(t, now)
+          onFeedback?.('ok')
+        } else {
+          // Stop on error: locks at error without runaway cursor advancement
+          recordError(t, e.key, now)
+          onFeedback?.('err')
+        }
       } else {
         return
       }

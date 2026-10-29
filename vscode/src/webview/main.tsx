@@ -23,8 +23,14 @@ import {
   FileTraceView,
   Results,
   ThemeToggle,
+  initAudio,
+  isMuted,
+  playClick,
+  playComplete,
+  setMuted,
   useMultiTraceInput,
   useTheme,
+  type FeedbackKind,
 } from '@devtrace/ui'
 import '../../../ui/src/styles.css'
 
@@ -177,12 +183,25 @@ function App() {
     return () => window.removeEventListener('message', onMessage)
   }, [postProgress])
 
+  const [soundMuted, setSoundMutedState] = useState(isMuted())
+  const toggleSound = useCallback(() => {
+    const next = !soundMuted
+    setMuted(next)
+    setSoundMutedState(next)
+  }, [soundMuted])
+
   const finishAll = useCallback(() => {
     const traces = tracesRef.current
     for (const t of traces) finalizeAll(t)
     setFinal(aggregateMetrics(traces))
     setOffenders(topOffendersAcross(traces))
+    playComplete()
     setPhase('done')
+  }, [])
+
+  const onFeedback = useCallback((kind: FeedbackKind) => {
+    initAudio()
+    playClick(kind)
   }, [])
 
   const onBump = useCallback(
@@ -216,6 +235,60 @@ function App() {
       else finishAll()
     },
     [finishAll],
+  )
+
+  const goToHunk = useCallback((index: number) => {
+    const regions = regionsRef.current
+    if (index < 0 || index >= regions.length) return
+    setActiveIndex(index)
+    setTick((x) => x + 1)
+  }, [])
+
+  const acceptCurrentHunk = useCallback(() => {
+    const t = tracesRef.current[activeIndex]
+    const region = regionsRef.current[activeIndex]
+    if (!t || !region) return
+    while (!isComplete(t)) {
+      skipLine(t, performance.now())
+    }
+    syncRegion(activeIndex)
+    setTick((x) => x + 1)
+    onHunkComplete(activeIndex)
+  }, [activeIndex, onHunkComplete, syncRegion])
+
+  const acceptAllAndSave = useCallback(() => {
+    const regions = regionsRef.current
+    vscode.postMessage({ type: 'save', texts: regions.map((r) => r.target) })
+  }, [])
+
+  const skipHunk = useCallback(() => {
+    const t = tracesRef.current[activeIndex]
+    if (!t) return
+    while (!isComplete(t)) {
+      skipLine(t, performance.now())
+    }
+    syncRegion(activeIndex)
+    setTick((x) => x + 1)
+    onHunkComplete(activeIndex)
+  }, [activeIndex, onHunkComplete, syncRegion])
+
+  const onLineClick = useCallback(
+    (li: number) => {
+      const doc = docRef.current
+      const regions = regionsRef.current
+      if (!doc) return
+      for (let i = 0; i < regions.length; i++) {
+        const r = regions[i] as RegionInit
+        const startLine = doc.lineOf[r.start] as number
+        const endOffset = Math.max(r.start, r.start + r.target.length - 1)
+        const endLine = doc.lineOf[endOffset] as number
+        if (li >= startLine && li <= endLine) {
+          goToHunk(i)
+          return
+        }
+      }
+    },
+    [goToHunk],
   )
 
   const discard = useCallback(() => {
@@ -285,19 +358,18 @@ function App() {
     onHunkComplete,
     onAllComplete: finishAll,
     onEscape: discard,
+    onFeedback,
   })
 
+  // Center the active hunk line in view when switching hunks or on mount
   useEffect(() => {
     const c = scrollerRef.current
     if (phase !== 'trace' || !c) return
-    c.querySelector<HTMLElement>('.ln.cur')?.scrollIntoView({ block: 'nearest' })
-  }, [tick, activeIndex, phase])
-
-  useEffect(() => {
-    if (phase !== 'trace') return
-    const c = scrollerRef.current
-    if (c) c.scrollTop = 0
-  }, [label, phase])
+    const targetEl = c.querySelector<HTMLElement>('.ln.cur') ?? c.querySelector<HTMLElement>('.ln.hunk-line')
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [activeIndex, phase])
 
   if (phase === 'idle') return <div className="empty">Waiting for a change to trace…</div>
 
@@ -376,20 +448,145 @@ function App() {
   const active = activeIndex >= 0 ? traces[activeIndex] : undefined
   const cursorAfter = active ? (regions[activeIndex] as RegionInit).start + active.cursor : -1
 
+  // Compute live typing speed (WPM) & accuracy
+  let totalCorrect = 0
+  let totalErrors = 0
+  let earliestT: number | null = null
+  let latestT: number | null = null
+
+  for (const t of traces) {
+    for (const k of t.keystrokes) {
+      if (k.ok) totalCorrect++
+      else totalErrors++
+      if (earliestT === null || k.t < earliestT) earliestT = k.t
+      if (latestT === null || k.t > latestT) latestT = k.t
+    }
+  }
+
+  const elapsedMin = earliestT !== null && latestT !== null && latestT > earliestT
+    ? (latestT - earliestT) / 60000
+    : 0
+  const liveWpm = elapsedMin > 0 ? Math.round((totalCorrect / 5) / elapsedMin) : 0
+  const liveAcc = totalCorrect + totalErrors > 0
+    ? Math.round((totalCorrect / (totalCorrect + totalErrors)) * 100)
+    : 100
+
+  let nextKeyHint = ''
+  let nextTokenHint = ''
+  if (active && active.cursor < active.doc.text.length) {
+    const text = active.doc.text
+    const cur = active.cursor
+    const ch = text[cur]!
+    if (ch === ' ') nextKeyHint = '␣ Space'
+    else if (ch === '\t') nextKeyHint = '⇥ Tab'
+    else if (ch === '\n') nextKeyHint = '↵ Enter'
+    else nextKeyHint = ch
+
+    // Check if at word/identifier token start
+    if (/[a-zA-Z_]/.test(ch) && (cur === 0 || !/[a-zA-Z0-9_]/.test(text[cur - 1]!))) {
+      let wEnd = cur
+      while (wEnd < text.length && /[a-zA-Z0-9_]/.test(text[wEnd]!)) wEnd++
+      const word = text.slice(cur, wEnd)
+      if (word.length > 1) {
+        nextTokenHint = word
+      }
+    }
+  }
+
   return (
     <div className="tracing">
       <header className="topbar">
-        <span className="chunklabel">{label}</span>
-        <div className="progress">
-          <div className="pbar">
-            <div className="pfill" style={{ width: `${progress}%` }} />
-          </div>
-          <span className="pnum">{progress}%</span>
+        <div className="chunk-info">
+          <span className="file-badge" title={label}>📄 {label}</span>
+          {regions.length > 1 && (
+            <div className="hunk-nav">
+              <button
+                className="hud-nav-btn"
+                onClick={() => goToHunk(activeIndex - 1)}
+                disabled={activeIndex <= 0}
+                title="Previous hunk (or click any hunk line in the editor)"
+              >
+                ◀
+              </button>
+              <span className="hud-pill hunk-pill" title={`Hunk ${activeIndex + 1} of ${regions.length} — click line to jump`}>
+                Hunk <b>{activeIndex + 1}</b> / {regions.length}
+              </span>
+              <button
+                className="hud-nav-btn"
+                onClick={() => goToHunk(activeIndex + 1)}
+                disabled={activeIndex >= regions.length - 1}
+                title="Next hunk (or click any hunk line in the editor)"
+              >
+                ▶
+              </button>
+            </div>
+          )}
         </div>
-        <ThemeToggle theme={theme} onToggle={toggle} />
-        <button className="ghost" onClick={finishAll}>
-          End
-        </button>
+
+        <div className="hud-stats">
+          <div className="hud-pill stat-wpm" title="Live typing speed (Words Per Minute)">
+            <span className="hud-label">⚡ WPM</span>
+            <span className="hud-val">{liveWpm}</span>
+          </div>
+
+          <div className="hud-pill stat-acc" title="Live typing accuracy">
+            <span className="hud-label">🎯 ACC</span>
+            <span className="hud-val">{liveAcc}%</span>
+          </div>
+
+          {nextKeyHint && (
+            <div className="hud-pill stat-next" title={`Next: ${nextKeyHint}${nextTokenHint ? ` (${nextTokenHint})` : ''}`}>
+              <span className="hud-label">NEXT</span>
+              <span className="hud-key">{nextKeyHint}</span>
+              {nextTokenHint && <span className="hud-token-preview">({nextTokenHint})</span>}
+            </div>
+          )}
+        </div>
+
+        <div className="hud-controls">
+          <div className="progress" title={`${progress}% complete`}>
+            <div className="pbar">
+              <div className="pfill" style={{ width: `${progress}%` }} />
+            </div>
+            <span className="pnum">{progress}%</span>
+          </div>
+
+          <button
+            className="icon-btn sound-toggle"
+            onClick={toggleSound}
+            title={soundMuted ? 'Unmute typing sounds' : 'Mute typing sounds'}
+          >
+            {soundMuted ? '🔇' : '🔊'}
+          </button>
+
+          <ThemeToggle theme={theme} onToggle={toggle} />
+
+          <button
+            className="hud-btn hud-accept-hunk"
+            onClick={acceptCurrentHunk}
+            title="Accept this hunk without typing and jump to next"
+          >
+            Accept Hunk ✓
+          </button>
+
+          <button
+            className="hud-btn hud-accept-all"
+            onClick={acceptAllAndSave}
+            title="Accept all changes immediately and save to disk"
+          >
+            Accept All & Save ✓
+          </button>
+
+          {regions.length > 1 && activeIndex < regions.length - 1 && (
+            <button className="hud-skip-btn" onClick={skipHunk} title="Skip this hunk and jump to next">
+              Skip Hunk ↷
+            </button>
+          )}
+
+          <button className="ghost end-btn" onClick={finishAll} title="End trace session early">
+            End
+          </button>
+        </div>
       </header>
 
       <div className="trace-layout">
@@ -407,24 +604,15 @@ function App() {
             versions={versionsRef.current}
             cursorAfter={cursorAfter}
             scrollerRef={scrollerRef}
+            onLineClick={onLineClick}
+            language={label}
           />
         </main>
       </div>
 
       <footer className="foot">
-        {mode === 'proposal' ? (
-          <>
-            The whole file is shown; only the highlighted changes are traced. Type them
-            in order — the untouched code stays as it is. Errors are kept; saving writes
-            exactly what you type.
-          </>
-        ) : (
-          <>
-            Every character of this code is traced. Errors are kept, so keep moving —
-            finish the pass, then retrace the mess if you want it clean.
-          </>
-        )}
-        <span className="esc">ctrl/⌘+enter skips a line · esc to discard</span>
+        <span>Click line to jump · <kbd className="kb">Tab</kbd> autocomplete line · <kbd className="kb">Enter</kbd> auto-indent</span>
+        <span className="esc"><kbd className="kb">Ctrl+Enter</kbd> skip line · <kbd className="kb">Esc</kbd> discard</span>
       </footer>
     </div>
   )

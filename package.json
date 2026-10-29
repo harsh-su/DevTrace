@@ -6,7 +6,8 @@
     "core",
     "ui",
     "vscode",
-    "opencode-plugin"
+    "opencode-plugin",
+    "antigravity"
   ],
   "scripts": {
     "dev": "concurrently -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
@@ -18,6 +19,7 @@
     "test:core": "tsx core/test/trace.test.ts && tsx core/test/diff.test.ts && tsx core/test/tour.test.ts && tsx core/test/flow.test.ts && tsx core/test/comments.test.ts",
     "test:ui": "tsx ui/test/SourceView.test.tsx && tsx ui/test/FileTraceView.test.tsx",
     "test:plugin": "tsx opencode-plugin/test/bridge.test.ts",
+    "test:antigravity": "tsx antigravity/test/hook.test.ts",
     "build:plugin": "npm --workspace opencode-devtrace run build",
     "package:extension": "npm --workspace devtrace run package",
     "typecheck": "tsc --noEmit"
