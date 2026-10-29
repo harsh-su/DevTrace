@@ -1,15 +1,5 @@
 import { useEffect } from 'react'
-import {
-  autoAdvanceLeadingIndent,
-  autoAdvanceNonTypable,
-  autocompleteLine,
-  backspace,
-  isComplete,
-  press,
-  recordError,
-  skipLine,
-  type Trace,
-} from '@devtrace/core'
+import { advanceSkipped, backspace, isComplete, press, skipLine, tabFill, type Trace } from '@devtrace/core'
 
 export type FeedbackKind = 'ok' | 'err' | 'enter' | 'tab' | 'skip'
 
@@ -33,16 +23,11 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
   const { onBump, onComplete, onEscape, onFeedback } = handlers
 
   useEffect(() => {
-    if (!active || !trace) return
-    const t = trace
-
-    // Auto-advance emojis / non-typable characters on start
-    const now = performance.now()
-    const initBefore = t.cursor
-    autoAdvanceNonTypable(t, now)
-    if (t.cursor !== initBefore) {
-      onBump?.(initBefore, t.cursor)
-    }
+    if (!active) return
+    const onKey = (e: KeyboardEvent) => {
+      const t = trace
+      if (!t) return
+      advanceSkipped(t)
 
     const onKey = (e: KeyboardEvent) => {
       // Ctrl/Cmd+Enter jumps past the current line without typing it.
@@ -73,6 +58,7 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
         e.preventDefault()
         const before = t.cursor
         if (backspace(t, now)) {
+          advanceSkipped(t)
           onFeedback?.('ok')
           onBump?.(before, t.cursor)
         }

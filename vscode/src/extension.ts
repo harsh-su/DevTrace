@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { existsSync } from 'node:fs'
-import { diffHunks, lineSlice, type Hunk, type Metrics, type Trace } from '@devtrace/core'
+import { diffHunks, languageId, lineSlice, type Hunk, type Metrics, type Trace } from '@devtrace/core'
 import { TraceSession } from './session.js'
 import { ResultsPanel } from './results.js'
 import { PendingStore, type StagedChange, type StagedEntry } from './staging.js'
@@ -10,6 +10,8 @@ import { PendingDecorations, PendingTreeProvider } from './pendingView.js'
 import { TracePanel } from './tracePanel.js'
 import { TourStore } from './tour.js'
 import { TourTreeProvider } from './tourView.js'
+import { FlowIndex, FlowTreeProvider } from './flow.js'
+import { FlowPanel } from './flowPanel.js'
 
 interface LastResults {
   trace: Trace
@@ -27,6 +29,9 @@ let treeView: vscode.TreeView<unknown>
 let tourStore: TourStore
 let tourProvider: TourTreeProvider
 let tourTreeView: vscode.TreeView<unknown>
+let flowIndex: FlowIndex
+let flowProvider: FlowTreeProvider
+let flowTreeView: vscode.TreeView<unknown>
 
 let processing = false
 let autoPumping = false
@@ -108,7 +113,9 @@ async function applyStaged(change: StagedChange): Promise<'save' | 'discard'> {
   statusItem.tooltip = 'Tracing an AI change — Save writes what you type, Esc discards'
   statusItem.show()
 
-  const result = await TracePanel.show(extensionUri, change.after, regions, label)
+  const result = await TracePanel.show(extensionUri, change.after, regions, label, {
+    language: languageId(change.file),
+  })
 
   statusItem.text = '$(keyboard) DevTrace'
   statusItem.tooltip = 'Click to end a running session'
@@ -234,6 +241,7 @@ async function traceTourStep(stepId: string): Promise<void> {
   const result = await TracePanel.show(extensionUri, target, [{ start: 0, target }], label, {
     mode: 'tour',
     brief: step.explanation,
+    language: languageId(step.file),
   })
 
   statusItem.text = '$(keyboard) DevTrace'
@@ -409,6 +417,12 @@ export function activate(context: vscode.ExtensionContext): void {
   }
   tourStore.onDidChange(updateTourContext)
   void tourStore.start()
+
+  flowIndex = new FlowIndex()
+  flowProvider = new FlowTreeProvider(flowIndex)
+  flowTreeView = vscode.window.createTreeView('devtrace.code', { treeDataProvider: flowProvider })
+  const flowListener = flowIndex.onDidChange((graph) => FlowPanel.update(graph))
+  void flowIndex.scan()
 
   const traceSelection = vscode.commands.registerCommand('devtrace.traceSelection', async () => {
     const editor = vscode.window.activeTextEditor
@@ -601,6 +615,24 @@ async function applyDirectly(change: StagedChange): Promise<void> {
     tourProvider.refresh(),
   )
 
+  const openFlow = vscode.commands.registerCommand('devtrace.flow.open', async (id?: string) => {
+    const node = id ? flowIndex.node(id) : undefined
+    if (node && node.kind !== 'external') {
+      const folder = vscode.workspace.workspaceFolders?.[0]
+      if (folder) {
+        const uri = vscode.Uri.joinPath(folder.uri, node.path)
+        try {
+          const doc = await vscode.workspace.openTextDocument(uri)
+          const editor = await vscode.window.showTextDocument(doc, { preview: true })
+          if (node.line) editor.revealRange(new vscode.Range(node.line - 1, 0, node.line - 1, 0), vscode.TextEditorRevealType.InCenter)
+        } catch { /* the graph can still be opened for a stale node */ }
+      }
+    }
+    FlowPanel.show(extensionUri, flowIndex.getGraph(), id, () => void flowIndex.scan())
+  })
+  const refreshFlow = vscode.commands.registerCommand('devtrace.flow.refresh', () => flowProvider.refresh())
+  const flowWatcher = vscode.workspace.onDidSaveTextDocument(() => flowProvider.refresh())
+
   const configListener = vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration('devtrace.enabled') || e.affectsConfiguration('devtrace.queueDir')) {
       void updateStagingContext()
@@ -706,6 +738,9 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
     tourStore,
     tourProvider,
     tourTreeView,
+    flowIndex,
+    flowProvider,
+    flowTreeView,
     vscode.window.registerFileDecorationProvider(decorations),
     traceSelection,
     traceFile,
@@ -729,6 +764,10 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
     revealTourStep,
     resetTourProgress,
     refreshTour,
+    openFlow,
+    refreshFlow,
+    flowWatcher,
+    flowListener,
 
     // Special keys. Bound only while a session runs so the editor never inserts
     // anything for them — the document must stay immutable.

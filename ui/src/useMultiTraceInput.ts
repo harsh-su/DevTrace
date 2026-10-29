@@ -1,15 +1,5 @@
 import { useEffect } from 'react'
-import {
-  autoAdvanceLeadingIndent,
-  autoAdvanceNonTypable,
-  autocompleteLine,
-  backspace,
-  isComplete,
-  press,
-  recordError,
-  skipLine,
-  type Trace,
-} from '@devtrace/core'
+import { advanceSkipped, backspace, isComplete, press, skipLine, tabFill, type Trace } from '@devtrace/core'
 import type { FeedbackKind } from './useTraceInput.js'
 
 export interface MultiTraceInputHandlers {
@@ -61,6 +51,7 @@ export function useMultiTraceInput(
 
       const t = traces[activeIndex]
       if (!t) return
+      advanceSkipped(t)
 
       const done = (): void => {
         if (!isComplete(t)) return
@@ -90,6 +81,7 @@ export function useMultiTraceInput(
         e.preventDefault()
         const before = t.cursor
         if (backspace(t, now)) {
+          advanceSkipped(t)
           onFeedback?.('ok')
           onBump?.(activeIndex, before, t.cursor)
         }

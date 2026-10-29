@@ -2,7 +2,7 @@
   "name": "devtrace",
   "displayName": "DevTrace",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "private": true,
   "publisher": "devtrace",
   "license": "MIT",
@@ -17,7 +17,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onView:devtrace.pending",
-    "onView:devtrace.tour"
+    "onView:devtrace.tour",
+    "onView:devtrace.code"
   ],
   "contributes": {
     "viewsContainers": {
@@ -40,6 +41,12 @@
         {
           "id": "devtrace.pending",
           "name": "Pending changes",
+          "icon": "resources/devtrace.svg",
+          "contextualTitle": "DevTrace"
+        },
+        {
+          "id": "devtrace.code",
+          "name": "Code flow",
           "icon": "resources/devtrace.svg",
           "contextualTitle": "DevTrace"
         }
@@ -73,6 +80,16 @@
       {
         "command": "devtrace.traceSelection",
         "title": "DevTrace: Trace Selection"
+      },
+      {
+        "command": "devtrace.flow.open",
+        "title": "DevTrace: Show Code Flow"
+      },
+      {
+        "command": "devtrace.flow.refresh",
+        "title": "DevTrace: Refresh Code Flow",
+        "category": "DevTrace",
+        "icon": "$(refresh)"
       },
       {
         "command": "devtrace.traceFile",
