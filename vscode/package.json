@@ -1,5 +1,5 @@
 {
-  "name": "devtrace",
+  "name": "DevTrace",
   "displayName": "DevTrace",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
   "version": "1.0.0",
