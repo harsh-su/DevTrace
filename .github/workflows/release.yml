@@ -1,0 +1,75 @@
+name: Release VS Code Extension
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Antigravity hook
+        run: npm --workspace @devtrace/antigravity run build
+
+      - name: Typecheck
+        run: |
+          npm run typecheck
+          npm --workspace devtrace run typecheck
+
+      - name: Test
+        run: |
+          npm test
+          npm run test:antigravity
+
+      - name: Build extension
+        run: npm --workspace devtrace run build
+
+      - name: Package VSIX
+        run: npm --workspace devtrace run package
+
+      - name: Resolve VSIX path
+        id: vsix
+        run: |
+          version=$(node -p "require('./vscode/package.json').version")
+          echo "path=vscode/devtrace-${version}.vsix" >> "$GITHUB_OUTPUT"
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: devtrace-vsix
+          path: ${{ steps.vsix.outputs.path }}
+
+      - name: Publish to VS Code Marketplace
+        run: >
+          npx --yes @vscode/vsce publish
+          --packagePath "${{ steps.vsix.outputs.path }}"
+          -p "$VSCE_PAT"
+
+      - name: Attach VSIX to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.vsix.outputs.path }}
