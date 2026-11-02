@@ -6,9 +6,6 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -64,9 +61,9 @@ jobs:
 
       - name: Publish to VS Code Marketplace
         run: >
-          npx --yes @vscode/vsce publish
+          npx --yes @vscode/vsce@4 publish
           --packagePath "${{ steps.vsix.outputs.path }}"
-          -p "$VSCE_PAT"
+          --oidc
 
       - name: Attach VSIX to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')

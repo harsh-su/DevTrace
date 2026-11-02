@@ -76,9 +76,10 @@ Share the `.vsix` and anyone can install it:
 Once installed, run **DevTrace: Install OpenCode Plugin**, then restart
 `opencode`.
 
-To publish to the Marketplace instead, set a real `publisher` and `repository`
-in `package.json`, create a Personal Access Token, then:
+To publish from GitHub Actions, create a **Trusted Publishing** policy on the
+publisher page for this repository and `.github/workflows/release.yml`, then run
+the *Release VS Code Extension* workflow. It authenticates with OIDC
+(`vsce publish --oidc`), so no `VSCE_PAT` secret is needed.
 
-```bash
-npx @vscode/vsce publish
-```
+For a manual publish from your machine, `npx @vscode/vsce publish` still works
+with a Personal Access Token.
