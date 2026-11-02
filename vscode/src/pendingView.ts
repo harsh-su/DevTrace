@@ -1,47 +1,50 @@
 import * as vscode from 'vscode'
 import { diffHunks } from '@devtrace/core'
-import type { PendingStore, StagedEntry } from './staging.js'
+import type { PendingFile, PendingStore } from './staging.js'
 
 /** Added / Modified / Deleted, in the same spirit as Source Control letters. */
 type ChangeStatus = 'A' | 'M' | 'D'
 
-function statusOf(entry: StagedEntry): ChangeStatus {
-  const { before, after } = entry.change
+function statusOf(group: PendingFile): ChangeStatus {
+  const { before, after } = group
   if (before.length === 0 && after.length > 0) return 'A'
   if (after.length === 0) return 'D'
   return 'M'
 }
 
-function toolLabel(tool: string): string {
-  return tool === 'multiedit' ? 'multi-edit' : tool
+function editCount(n: number): string {
+  return n === 1 ? '1 edit' : `${n} edits`
 }
 
-/** One pending AI change, shown like a Source Control file row. */
+function hunkCount(n: number): string {
+  return n === 1 ? '1 hunk' : `${n} hunks`
+}
+
+/** One pending file, shown like a Source Control file row. */
 export class PendingItem extends vscode.TreeItem {
-  constructor(readonly entry: StagedEntry) {
-    const rel = vscode.workspace.asRelativePath(entry.change.file, false)
+  constructor(readonly group: PendingFile) {
+    const rel = vscode.workspace.asRelativePath(group.file, false)
     super(rel, vscode.TreeItemCollapsibleState.None)
-    this.id = entry.change.id
+    this.id = `file:${group.file}`
     this.contextValue = 'devtrace.pending'
-    this.resourceUri = vscode.Uri.file(entry.change.file)
+    this.resourceUri = vscode.Uri.file(group.file)
 
     let hunks = 0
     try {
-      hunks = diffHunks(entry.change.before, entry.change.after).length
+      hunks = diffHunks(group.before, group.after).length
     } catch {
       hunks = 0
     }
-    const parts = [`${toolLabel(entry.change.tool)}`, hunks === 1 ? '1 hunk' : `${hunks} hunks`]
-    this.description = parts.join(' · ')
+    this.description = `${editCount(group.entries.length)} · ${hunkCount(hunks)}`
     this.tooltip = new vscode.MarkdownString(
-      `**${rel}**\n\n${toolLabel(entry.change.tool)} · ` +
-        `${hunks === 1 ? '1 hunk' : `${hunks} hunks`} · staged ${new Date(entry.change.ts).toLocaleTimeString()}\n\n` +
-        `Click to trace it by hand.`,
+      `**${rel}**\n\n${editCount(group.entries.length)} · ${hunkCount(hunks)} · ` +
+        `last staged ${new Date(group.lastTs).toLocaleTimeString()}\n\n` +
+        `Click to trace every outstanding change to this file.`,
     )
     this.command = {
       command: 'devtrace.pending.trace',
-      title: 'Trace change',
-      arguments: [entry.change.id],
+      title: 'Trace file changes',
+      arguments: [group.file],
     }
   }
 }
@@ -61,7 +64,7 @@ export class PendingTreeProvider implements vscode.TreeDataProvider<PendingItem>
   }
 
   getChildren(): PendingItem[] {
-    return this.store.list().map((entry) => new PendingItem(entry))
+    return this.store.groups().map((group) => new PendingItem(group))
   }
 
   dispose(): void {
@@ -81,8 +84,8 @@ export class PendingDecorations implements vscode.FileDecorationProvider {
   constructor(store: PendingStore) {
     store.onDidChange(() => {
       this.byPath.clear()
-      for (const entry of store.list()) {
-        this.byPath.set(vscode.Uri.file(entry.change.file).toString(), statusOf(entry))
+      for (const group of store.groups()) {
+        this.byPath.set(vscode.Uri.file(group.file).toString(), statusOf(group))
       }
       this.emitter.fire(undefined)
     })

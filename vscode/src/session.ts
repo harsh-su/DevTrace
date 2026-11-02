@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import {
   SKIPPED,
   advanceSkipped,
+  autoFillPair,
   WRONG,
   backspace as coreBackspace,
   createTrace,
@@ -218,9 +219,12 @@ export class TraceSession implements vscode.Disposable {
         for (const ch of typed) {
           advanceSkipped(t)
           if (isComplete(t)) break
-        corePress(t, ch, performance.now())
-      }
-      log(`typed "${typed}" @${expected} -> cursor ${t.cursor}`)
+          corePress(t, ch, performance.now())
+        }
+        // A real single keypress may auto-close an adjacent pair in the target.
+        // Multi-char edits (paste, IME) are left alone so offsets stay aligned.
+        if (typed.length === 1) autoFillPair(t, performance.now())
+        log(`typed "${typed}" @${expected} -> cursor ${t.cursor}`)
     } else {
       log(`ignored edit: expected=${expected} -"${restore.baseChanged}" +"${restore.nowChanged}"`)
     }

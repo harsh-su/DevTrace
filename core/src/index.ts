@@ -7,6 +7,7 @@
  */
 export * from './trace.js'
 export * from './tokenize.js'
+export * from './syntax.js'
 export * from './format.js'
 export * from './diff.js'
 export * from './tour.js'

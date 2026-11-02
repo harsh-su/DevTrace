@@ -27,7 +27,7 @@ export interface Keystroke {
   exp: string
   ok: boolean
   t: number
-  kind: 'type' | 'back' | 'tab' | 'newline' | 'skip'
+  kind: 'type' | 'back' | 'tab' | 'newline' | 'skip' | 'indent'
 }
 
 export interface Doc {
@@ -220,6 +220,34 @@ export function autoAdvanceLeadingIndent(t: Trace, now: number): void {
     }
   }
   autoAdvanceNonTypable(t, now)
+}
+
+/** Openers that auto-fill their matching closer when it is the very next char. */
+const AUTO_PAIRS: Record<string, string> = {
+  '(': ')',
+  '[': ']',
+  '{': '}',
+  '"': '"',
+  "'": "'",
+  '`': '`',
+}
+
+/**
+ * Fill the matching closer when it sits immediately after the just-typed
+ * opener, mirroring an editor's auto-close without inserting new text. Only one
+ * pair is filled per opener, so nested input such as `(())` still leaves the
+ * outer closer for the developer to type. The filled character is scored as a
+ * correct keystroke, so it counts towards WPM and is written on save.
+ */
+export function autoFillPair(t: Trace, now: number): boolean {
+  if (isComplete(t) || t.cursor === 0) return false
+  const opener = t.doc.text[t.cursor - 1] as string
+  const closer = AUTO_PAIRS[opener]
+  if (closer === undefined) return false
+  if (t.doc.text[t.cursor] !== closer) return false
+  // Never overwrite a skipped comment/string run with an auto-filled char.
+  if (t.states[t.cursor] !== PENDING) return false
+  return press(t, closer, now, 'type')
 }
 
 /** Autocomplete the rest of the current line with target code. */

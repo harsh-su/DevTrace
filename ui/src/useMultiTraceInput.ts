@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { advanceSkipped, backspace, isComplete, press, skipLine, tabFill, type Trace } from '@devtrace/core'
+import { advanceSkipped, autoAdvanceLeadingIndent, autoAdvanceNonTypable, autoFillPair, autocompleteLine, backspace, isComplete, press, recordError, skipLine, type Trace } from '@devtrace/core'
 import type { FeedbackKind } from './useTraceInput.js'
 
 export interface MultiTraceInputHandlers {
@@ -114,6 +114,7 @@ export function useMultiTraceInput(
         const expected = t.doc.text[t.cursor]
         if (e.key === expected) {
           press(t, e.key, now)
+          autoFillPair(t, now)
           autoAdvanceNonTypable(t, now)
           onFeedback?.('ok')
         } else {

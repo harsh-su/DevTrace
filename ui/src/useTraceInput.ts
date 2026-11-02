@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { advanceSkipped, backspace, isComplete, press, skipLine, tabFill, type Trace } from '@devtrace/core'
+import { advanceSkipped, autoAdvanceLeadingIndent, autoAdvanceNonTypable, autoFillPair, autocompleteLine, backspace, isComplete, press, recordError, skipLine, type Trace } from '@devtrace/core'
 
 export type FeedbackKind = 'ok' | 'err' | 'enter' | 'tab' | 'skip'
 
@@ -29,7 +29,6 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
       if (!t) return
       advanceSkipped(t)
 
-    const onKey = (e: KeyboardEvent) => {
       // Ctrl/Cmd+Enter jumps past the current line without typing it.
       if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.key === 'NumpadEnter')) {
         e.preventDefault()
@@ -90,6 +89,7 @@ export function useTraceInput(active: boolean, trace: Trace | null, handlers: Tr
         const expected = t.doc.text[t.cursor]
         if (e.key === expected) {
           press(t, e.key, now)
+          autoFillPair(t, now)
           autoAdvanceNonTypable(t, now)
           onFeedback?.('ok')
         } else {

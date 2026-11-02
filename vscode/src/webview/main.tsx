@@ -9,6 +9,7 @@ import {
   languageId,
   markSkipped,
   skipRuns,
+  skipLine,
   advanceSkipped,
   finalizeAll,
   isComplete,
@@ -76,7 +77,7 @@ function App() {
   const [activeIndex, setActiveIndex] = useState(-1)
   const [final, setFinal] = useState<Metrics | null>(null)
   const [offenders, setOffenders] = useState<Offender[]>([])
-  const [tick, setTick] = useState(0)
+  const [, setTick] = useState(0)
   const { theme, toggle } = useTheme()
 
   const docRef = useRef<Doc | null>(null)

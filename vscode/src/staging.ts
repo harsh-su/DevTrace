@@ -19,6 +19,24 @@ export interface StagedEntry {
 }
 
 /**
+ * Every pending edit for one file, collapsed into the unit the developer
+ * traces. Later records compose on earlier ones, so `after` from the newest
+ * record is the complete file the developer is working towards.
+ */
+export interface PendingFile {
+  file: string
+  /** Oldest first. */
+  entries: StagedEntry[]
+  /** Earliest `before`, for display/status only; tracing diffs against disk. */
+  before: string
+  /** Newest `after`: the whole proposed file, not just the latest edit. */
+  after: string
+  /** Earliest timestamp, so files queue in the order they were first touched. */
+  ts: number
+  lastTs: number
+}
+
+/**
  * The set of AI changes waiting to be hand-traced, backed by the
  * `<workspace>/.devtrace/pending/*.json` files the OpenCode plugin writes.
  *
@@ -64,6 +82,62 @@ export class PendingStore implements vscode.Disposable {
 
   find(id: string): StagedEntry | undefined {
     return this.byId.get(id)
+  }
+
+  /**
+   * All pending edits collapsed per file, oldest-first by when the file was
+   * first touched. The newest record's `after` is the complete proposed file.
+   */
+  groups(): PendingFile[] {
+    const byFile = new Map<string, PendingFile>()
+    for (const entry of this.list()) {
+      const change = entry.change
+      const existing = byFile.get(change.file)
+      if (existing) {
+        existing.entries.push(entry)
+        existing.after = change.after
+        existing.lastTs = change.ts
+      } else {
+        byFile.set(change.file, {
+          file: change.file,
+          entries: [entry],
+          before: change.before,
+          after: change.after,
+          ts: change.ts,
+          lastTs: change.ts,
+        })
+      }
+    }
+    return [...byFile.values()]
+  }
+
+  /** Snapshot the pending edits for one file, or undefined if none remain. */
+  group(file: string): PendingFile | undefined {
+    return this.groups().find((pending) => pending.file === file)
+  }
+
+  /**
+   * Remove exactly the records that were traced. A record staged while the
+   * panel was open has a different id (OpenCode) or a different `after`
+   * (Antigravity upserts in place), so it survives for the next trace.
+   */
+  async removeSnapshots(entries: StagedEntry[]): Promise<void> {
+    let changed = false
+    for (const snapshot of entries) {
+      const current = this.byId.get(snapshot.change.id)
+      if (!current) continue
+      if (
+        current.fsPath !== snapshot.fsPath ||
+        current.change.ts !== snapshot.change.ts ||
+        current.change.after !== snapshot.change.after
+      ) {
+        continue
+      }
+      this.byId.delete(snapshot.change.id)
+      await unlink(current.fsPath).catch(() => {})
+      changed = true
+    }
+    if (changed) this.emitter.fire()
   }
 
   /** Drop a change from the queue and delete its file. */

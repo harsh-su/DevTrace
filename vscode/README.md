@@ -18,10 +18,11 @@ with the web app (`@devtrace/core`), so the numbers are identical.
 - **Trace existing code.** Select a block and run *DevTrace: Trace Selection*,
   or *DevTrace: Trace File Range* for the whole file.
 - **Trace AI changes from OpenCode.** With the `opencode-devtrace` plugin, edits
-  the agent wants to make are staged instead of written. DevTrace opens a
-  dedicated panel beside the editor showing just the changed hunk as ghost text —
-  you type it there, not over the real file. **Save** writes exactly what you
-  typed; **Discard** (or Esc, or closing the panel) writes nothing. No prompts,
+  the agent wants to make are staged instead of written. All pending edits to the
+  same file collapse into one entry; DevTrace opens a dedicated panel beside the
+  editor showing every outstanding hunk as ghost text — you type it there, not
+  over the real file. **Save** writes the file once; **Discard** (or Esc, or
+  closing the panel) writes nothing. No prompts,
   no choices. Run **DevTrace: Install OpenCode Plugin** to set it up, then
   restart opencode.
 - **Metrics worth having.** Net/raw WPM, accuracy, consistency, indentation

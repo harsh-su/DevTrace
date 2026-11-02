@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import { diffHunks, languageId, lineSlice, type Hunk, type Metrics, type Trace } from '@devtrace/core'
 import { TraceSession } from './session.js'
 import { ResultsPanel } from './results.js'
-import { PendingStore, type StagedChange, type StagedEntry } from './staging.js'
+import { PendingStore, type PendingFile } from './staging.js'
 import { PendingDecorations, PendingTreeProvider } from './pendingView.js'
 import { TracePanel } from './tracePanel.js'
 import { TourStore } from './tour.js'
@@ -78,15 +78,16 @@ async function begin(
 }
 
 /**
- * Trace the staged change in the dedicated DevTrace panel. Nothing is written
- * unless the developer saves; then the hunk is replaced with exactly what was
- * typed. The editor buffer is never touched, so the change is never "already in"
- * the file until the developer commits to it.
+ * Trace every outstanding change to one file in the dedicated panel. Later
+ * pending records compose on earlier ones, so the newest `after` is the whole
+ * proposed file; diffing it against disk yields every hunk that has not been
+ * typed yet. Nothing is written unless the developer saves, then the file is
+ * written once and exactly those records are retired.
  *
- * Returns what the developer chose, so the caller can retire the queue entry.
+ * Returns what the developer chose, so the caller can retire the queue entries.
  */
-async function applyStaged(change: StagedChange): Promise<'save' | 'discard'> {
-  const uri = vscode.Uri.file(change.file)
+async function applyPending(group: PendingFile): Promise<'save' | 'discard'> {
+  const uri = vscode.Uri.file(group.file)
   let current = ''
   try {
     current = (await vscode.workspace.openTextDocument(uri)).getText()
@@ -95,9 +96,10 @@ async function applyStaged(change: StagedChange): Promise<'save' | 'discard'> {
     current = ''
   }
 
-  const hunks = diffHunks(current, change.after)
+  const hunks = diffHunks(current, group.after)
   if (hunks.length === 0) {
-    void vscode.window.showInformationMessage('DevTrace: that staged change was already applied.')
+    await store.removeSnapshots(group.entries)
+    void vscode.window.showInformationMessage('DevTrace: those staged changes were already applied.')
     return 'save'
   }
 
@@ -113,8 +115,8 @@ async function applyStaged(change: StagedChange): Promise<'save' | 'discard'> {
   statusItem.tooltip = 'Tracing an AI change — Save writes what you type, Esc discards'
   statusItem.show()
 
-  const result = await TracePanel.show(extensionUri, change.after, regions, label, {
-    language: languageId(change.file),
+  const result = await TracePanel.show(extensionUri, group.after, regions, label, {
+    language: languageId(group.file),
   })
 
   statusItem.text = '$(keyboard) DevTrace'
@@ -127,6 +129,7 @@ async function applyStaged(change: StagedChange): Promise<'save' | 'discard'> {
   const typed = hunks.map((h, i) => (h.newText.length === 0 ? '' : (result.typedTexts[i] ?? '')))
 
   await writeHunks(uri, current, hunks, typed)
+  await store.removeSnapshots(group.entries)
   return 'save'
 }
 
@@ -168,17 +171,17 @@ async function writeHunks(
   await doc.save()
 }
 
-/** Trace one queue entry, retiring it on save. Serialised against the panel. */
-async function traceEntry(entry: StagedEntry): Promise<'save' | 'discard' | undefined> {
+/** Trace one pending file, retiring the records in the snapshot on save. */
+async function tracePendingFile(file: string): Promise<'save' | 'discard' | undefined> {
   if (processing) {
     void vscode.window.showInformationMessage('DevTrace is already tracing a change.')
     return undefined
   }
   processing = true
   try {
-    const action = await applyStaged(entry.change)
-    if (action === 'save') await store.remove(entry.change.id)
-    return action
+    const group = store.group(file)
+    if (!group) return undefined
+    return await applyPending(group)
   } finally {
     processing = false
   }
@@ -270,9 +273,9 @@ async function autoPump(): Promise<void> {
   autoPumping = true
   try {
     while (!processing) {
-      const next = store.list()[0]
+      const next = store.groups()[0]
       if (!next) break
-      const action = await traceEntry(next)
+      const action = await tracePendingFile(next.file)
       if (action !== 'save') break
     }
   } finally {
@@ -280,12 +283,12 @@ async function autoPump(): Promise<void> {
   }
 }
 
-/** Trace every queued change in order, stopping if one is discarded. */
+/** Trace every pending file in order, stopping if one is discarded. */
 async function traceAll(): Promise<void> {
   while (!processing) {
-    const next = store.list()[0]
+    const next = store.groups()[0]
     if (!next) break
-    const action = await traceEntry(next)
+    const action = await tracePendingFile(next.file)
     if (action !== 'save') break
   }
 }
@@ -329,10 +332,10 @@ async function setStaging(enabled: boolean): Promise<void> {
   }
 
   if (!enabled) {
-    const n = store.list().length
+    const n = store.groups().length
     const detail =
       n > 0
-        ? `This removes ${n} pending change${n === 1 ? '' : 's'} that haven't been traced.`
+        ? `This removes ${n} pending file${n === 1 ? '' : 's'} that haven't been traced.`
         : 'OpenCode edits will no longer be staged for hand-typing.'
     const pick = await vscode.window.showWarningMessage(`Turn off DevTrace? ${detail}`, { modal: true }, 'Turn off')
     if (pick !== 'Turn off') return
@@ -382,8 +385,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const decorations = new PendingDecorations(store)
   store.onDidChange(() => {
     treeProvider.refresh()
-    const n = store.list().length
-    treeView.badge = n > 0 ? { value: n, tooltip: `${n} pending change${n === 1 ? '' : 's'}` } : undefined
+    const n = store.groups().length
+    treeView.badge = n > 0 ? { value: n, tooltip: `${n} pending file${n === 1 ? '' : 's'}` } : undefined
     if (!TraceSession.active) {
       statusItem.text = n > 0 ? `$(keyboard) DevTrace (${n})` : '$(keyboard) DevTrace'
       statusItem.command = 'devtrace.openSidebar'
@@ -466,71 +469,80 @@ export function activate(context: vscode.ExtensionContext): void {
     ResultsPanel.show(lastResults.trace, lastResults.metrics, lastResults.label, lastResults.completed)
   })
 
-function extractId(arg: unknown): string | undefined {
+/** A pending item, a group.file string, or a legacy entry argument. */
+function extractFile(arg: unknown): string | undefined {
   if (typeof arg === 'string') return arg
-  if (arg && typeof arg === 'object' && 'entry' in arg) {
-    const item = arg as { entry?: { change?: { id?: string } } }
-    return item.entry?.change?.id
+  if (arg && typeof arg === 'object') {
+    if ('group' in arg) {
+      const item = arg as { group?: { file?: string } }
+      return item.group?.file
+    }
+    if ('entry' in arg) {
+      const item = arg as { entry?: { change?: { file?: string } } }
+      return item.entry?.change?.file
+    }
   }
   return undefined
 }
 
-async function applyDirectly(change: StagedChange): Promise<void> {
-  const uri = vscode.Uri.file(change.file)
-  const fullBytes = Buffer.from(change.after, 'utf8')
+async function applyDirectly(group: PendingFile): Promise<void> {
+  const uri = vscode.Uri.file(group.file)
+  const fullBytes = Buffer.from(group.after, 'utf8')
   await vscode.workspace.fs.writeFile(uri, fullBytes)
 }
 
   const tracePending = vscode.commands.registerCommand('devtrace.pending.trace', async (arg: unknown) => {
-    const id = extractId(arg)
-    if (!id) return
-    const entry = store.find(id)
-    if (entry) await traceEntry(entry)
+    const file = extractFile(arg)
+    if (!file) return
+    await tracePendingFile(file)
   })
 
   const acceptPending = vscode.commands.registerCommand('devtrace.pending.accept', async (arg: unknown) => {
-    const id = extractId(arg)
-    if (!id) return
-    const entry = store.find(id)
-    if (!entry) return
-    await applyDirectly(entry.change)
-    await store.remove(id)
+    const file = extractFile(arg)
+    if (!file) return
+    const group = store.group(file)
+    if (!group) return
+    await applyDirectly(group)
+    await store.removeSnapshots(group.entries)
     void vscode.window.showInformationMessage(
-      `DevTrace: Accepted changes for ${vscode.workspace.asRelativePath(entry.change.file, false)}.`,
+      `DevTrace: Accepted changes for ${vscode.workspace.asRelativePath(group.file, false)}.`,
     )
   })
 
   const acceptAllPending = vscode.commands.registerCommand('devtrace.pending.acceptAll', async () => {
-    const list = store.list()
-    if (list.length === 0) return
-    for (const entry of list) {
-      await applyDirectly(entry.change)
-      await store.remove(entry.change.id)
+    const groups = store.groups()
+    if (groups.length === 0) return
+    for (const group of groups) {
+      await applyDirectly(group)
+      await store.removeSnapshots(group.entries)
     }
-    void vscode.window.showInformationMessage(`DevTrace: Accepted all ${list.length} pending changes.`)
+    void vscode.window.showInformationMessage(
+      `DevTrace: Accepted all changes for ${groups.length} pending file${groups.length === 1 ? '' : 's'}.`,
+    )
   })
 
   const discardPending = vscode.commands.registerCommand('devtrace.pending.discard', async (arg: unknown) => {
-    const id = extractId(arg)
-    if (!id) return
-    const entry = store.find(id)
-    if (!entry) return
-    const rel = vscode.workspace.asRelativePath(entry.change.file, false)
+    const file = extractFile(arg)
+    if (!file) return
+    const group = store.group(file)
+    if (!group) return
+    const rel = vscode.workspace.asRelativePath(group.file, false)
     const pick = await vscode.window.showWarningMessage(
-      `Discard the staged change to ${rel}?`,
+      `Discard all pending changes to ${rel}?`,
       { modal: true },
       'Discard',
     )
-    if (pick === 'Discard') await store.remove(entry.change.id)
+    if (pick === 'Discard') {
+      const latest = store.group(file)
+      if (latest) await store.removeSnapshots(latest.entries)
+    }
   })
 
   const revealPending = vscode.commands.registerCommand('devtrace.pending.reveal', async (arg: unknown) => {
-    const id = extractId(arg)
-    if (!id) return
-    const entry = store.find(id)
-    if (!entry) return
+    const file = extractFile(arg)
+    if (!file) return
     try {
-      await vscode.window.showTextDocument(vscode.Uri.file(entry.change.file))
+      await vscode.window.showTextDocument(vscode.Uri.file(file))
     } catch {
       void vscode.window.showWarningMessage('DevTrace: that file no longer exists.')
     }
@@ -539,15 +551,15 @@ async function applyDirectly(change: StagedChange): Promise<void> {
   const traceAllPending = vscode.commands.registerCommand('devtrace.pending.traceAll', () => void traceAll())
 
   const clearPending = vscode.commands.registerCommand('devtrace.pending.clear', async () => {
-    const n = store.list().length
-    if (n === 0) return
+    const groups = store.groups()
+    if (groups.length === 0) return
     const pick = await vscode.window.showWarningMessage(
-      `Discard all ${n} pending change${n === 1 ? '' : 's'}?`,
+      `Discard all pending changes to ${groups.length} file${groups.length === 1 ? '' : 's'}?`,
       { modal: true },
       'Discard all',
     )
     if (pick !== 'Discard all') return
-    for (const entry of store.list()) await store.remove(entry.change.id)
+    for (const group of groups) await store.removeSnapshots(group.entries)
   })
 
   const refreshPending = vscode.commands.registerCommand('devtrace.pending.refresh', () =>

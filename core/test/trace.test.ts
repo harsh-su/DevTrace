@@ -2,6 +2,7 @@ import {
   aggregateMetrics,
   autoAdvanceLeadingIndent,
   autoAdvanceNonTypable,
+  autoFillPair,
   autocompleteLine,
   backspace,
   buildDoc,
@@ -9,7 +10,9 @@ import {
   createTrace,
   finalizeAll,
   isComplete,
+  markSkipped,
   metrics,
+  PENDING,
   press,
   recordError,
   SKIPPED,
@@ -448,6 +451,58 @@ console.log('\n24. tokenizeLine extracts syntax tags for Python and JS/TS')
   const jsTags = tokenizeLine(jsLine, 'main.ts')
   ok('keyword const tagged with k', jsTags[0] === 'k')
   ok('string tagged with s', jsTags[jsLine.indexOf('"')] === 's')
+}
+
+console.log('\n25. autoFillPair fills an adjacent closer')
+{
+  const t = createTrace('()')
+  press(t, '(', 1000)
+  ok('opening paren did not complete yet', t.cursor === 1)
+  ok('autoFillPair fills the closer', autoFillPair(t, 1000))
+  ok('cursor past the pair', t.cursor === 2)
+  ok('both chars correct', t.states[0] === CORRECT && t.states[1] === CORRECT)
+  ok(
+    'closer counted as a correct keystroke',
+    t.keystrokes.length === 2 && t.keystrokes[1]!.ok && t.keystrokes[1]!.kind === 'type',
+  )
+  ok('typedText reconstructs the pair', typedText(t) === '()')
+}
+{
+  const pairs = [
+    ['[]', '['],
+    ['{}', '{'],
+    ['""', '"'],
+    ["''", "'"],
+    ['``', '`'],
+  ] as const
+  for (const [src, opener] of pairs) {
+    const t = createTrace(src)
+    press(t, opener, 1000)
+    ok(`${src} auto-fills its closer`, autoFillPair(t, 1000) && isComplete(t))
+  }
+}
+{
+  const t = createTrace('(a)')
+  press(t, '(', 1000)
+  ok('non-adjacent closer is not filled', !autoFillPair(t, 1000) && t.cursor === 1)
+}
+{
+  const t = createTrace('(())')
+  press(t, '(', 1000)
+  ok('outer opener does not skip ahead', !autoFillPair(t, 1000) && t.cursor === 1)
+  press(t, '(', 1000)
+  ok('inner pair is filled', autoFillPair(t, 1000) && t.cursor === 3)
+  ok('outer closer still pending', t.states[3] === PENDING)
+  press(t, ')', 1000)
+  ok('typing the outer closer completes', isComplete(t))
+}
+{
+  const t = createTrace('()')
+  // A skipped closer belongs to a comment/string run and must not be typed.
+  markSkipped(t, 1, 2)
+  press(t, '(', 1000)
+  ok('skipped closer is not auto-filled', !autoFillPair(t, 1000))
+  ok('skipped state is preserved', t.states[1] === SKIPPED)
 }
 
 console.log(failures === 0 ? '\nAll checks passed.\n' : `\n${failures} FAILED\n`)

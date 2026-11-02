@@ -272,7 +272,7 @@ export default function App() {
 
   let nextKeyHint = ''
   if (trace.cursor < trace.doc.text.length) {
-    const ch = trace.doc.text[trace.cursor]
+    const ch = trace.doc.text[trace.cursor] ?? ''
     if (ch === ' ') nextKeyHint = '␣ Space'
     else if (ch === '\t') nextKeyHint = '⇥ Tab'
     else if (ch === '\n') nextKeyHint = '↵ Enter'

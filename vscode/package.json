@@ -2,9 +2,9 @@
   "name": "devtrace",
   "displayName": "DevTrace",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
-  "version": "0.0.8",
+  "version": "1.0.0",
   "private": true,
-  "publisher": "devtrace",
+  "publisher": "byteWorxs",
   "license": "MIT",
   "engines": {
     "vscode": "^1.90.0"
@@ -387,7 +387,7 @@
         "devtrace.autoTrace": {
           "type": "boolean",
           "default": false,
-          "description": "Open the trace panel for each staged AI change automatically. When off, changes wait in the DevTrace sidebar until you start them."
+          "description": "Open the trace panel for each pending file automatically. When off, files wait in the DevTrace sidebar until you start them."
         },
         "devtrace.enabled": {
           "type": "boolean",
