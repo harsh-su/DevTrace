@@ -10,8 +10,6 @@ import { PendingDecorations, PendingTreeProvider } from './pendingView.js'
 import { TracePanel } from './tracePanel.js'
 import { TourStore } from './tour.js'
 import { TourTreeProvider } from './tourView.js'
-import { FlowIndex, FlowTreeProvider } from './flow.js'
-import { FlowPanel } from './flowPanel.js'
 
 interface LastResults {
   trace: Trace
@@ -29,9 +27,6 @@ let treeView: vscode.TreeView<unknown>
 let tourStore: TourStore
 let tourProvider: TourTreeProvider
 let tourTreeView: vscode.TreeView<unknown>
-let flowIndex: FlowIndex
-let flowProvider: FlowTreeProvider
-let flowTreeView: vscode.TreeView<unknown>
 
 let processing = false
 let autoPumping = false
@@ -360,6 +355,66 @@ async function setStaging(enabled: boolean): Promise<void> {
   await updateStagingContext()
 }
 
+interface PluginInstallResult {
+  changed: boolean
+  created: boolean
+  pluginsDir: vscode.Uri
+}
+
+/** Copy the bundled OpenCode plugin into `~/.config/opencode/plugins/`. */
+async function installOpencodePlugin(
+  context: vscode.ExtensionContext,
+  enableStaging: boolean,
+): Promise<PluginInstallResult> {
+  const source = vscode.Uri.joinPath(context.extensionUri, 'assets', 'opencode-plugin.ts')
+  const pluginsDir = vscode.Uri.file(path.join(os.homedir(), '.config', 'opencode', 'plugins'))
+  const target = vscode.Uri.joinPath(pluginsDir, 'aitrace.ts')
+  const bytes = await vscode.workspace.fs.readFile(source)
+
+  let created = true
+  let changed = true
+  try {
+    const existing = await vscode.workspace.fs.readFile(target)
+    created = false
+    changed = Buffer.compare(Buffer.from(existing), Buffer.from(bytes)) !== 0
+  } catch {
+    // Not installed yet.
+  }
+
+  if (changed) {
+    await vscode.workspace.fs.createDirectory(pluginsDir)
+    await vscode.workspace.fs.writeFile(target, bytes)
+  }
+
+  // Staging is opt-in via the queue directory, which is the same signal the
+  // plugin watches. Create it so the plugin is live after a restart.
+  if (enableStaging) await setStaging(true)
+
+  return { changed, created, pluginsDir }
+}
+
+/**
+ * Install the OpenCode plugin automatically when OpenCode is already set up.
+ * Skipped when `~/.config/opencode` is missing so we do not create config for
+ * people who do not use OpenCode. The sidebar button remains for manual repair.
+ */
+async function autoInstallOpencodePlugin(context: vscode.ExtensionContext): Promise<void> {
+  const opencodeDir = path.join(os.homedir(), '.config', 'opencode')
+  if (!existsSync(opencodeDir)) return
+  const source = path.join(context.extensionUri.fsPath, 'assets', 'opencode-plugin.ts')
+  if (!existsSync(source)) return
+  try {
+    const result = await installOpencodePlugin(context, false)
+    if (result.created) {
+      void vscode.window.showInformationMessage(
+        'AItrace: OpenCode plugin installed. Restart opencode to load it.',
+      )
+    }
+  } catch {
+    // A manual install is still available from the sidebar.
+  }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   extensionUri = context.extensionUri
   statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
@@ -396,6 +451,7 @@ export function activate(context: vscode.ExtensionContext): void {
   })
   void (async () => {
     await ensureStagingFromSetting()
+    await autoInstallOpencodePlugin(context)
     await store.start()
     await updateStagingContext()
     await autoPump()
@@ -420,12 +476,6 @@ export function activate(context: vscode.ExtensionContext): void {
   }
   tourStore.onDidChange(updateTourContext)
   void tourStore.start()
-
-  flowIndex = new FlowIndex()
-  flowProvider = new FlowTreeProvider(flowIndex)
-  flowTreeView = vscode.window.createTreeView('aitrace.code', { treeDataProvider: flowProvider })
-  const flowListener = flowIndex.onDidChange((graph) => FlowPanel.update(graph))
-  void flowIndex.scan()
 
   const traceSelection = vscode.commands.registerCommand('aitrace.traceSelection', async () => {
     const editor = vscode.window.activeTextEditor
@@ -627,24 +677,6 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     tourProvider.refresh(),
   )
 
-  const openFlow = vscode.commands.registerCommand('aitrace.flow.open', async (id?: string) => {
-    const node = id ? flowIndex.node(id) : undefined
-    if (node && node.kind !== 'external') {
-      const folder = vscode.workspace.workspaceFolders?.[0]
-      if (folder) {
-        const uri = vscode.Uri.joinPath(folder.uri, node.path)
-        try {
-          const doc = await vscode.workspace.openTextDocument(uri)
-          const editor = await vscode.window.showTextDocument(doc, { preview: true })
-          if (node.line) editor.revealRange(new vscode.Range(node.line - 1, 0, node.line - 1, 0), vscode.TextEditorRevealType.InCenter)
-        } catch { /* the graph can still be opened for a stale node */ }
-      }
-    }
-    FlowPanel.show(extensionUri, flowIndex.getGraph(), id, () => void flowIndex.scan())
-  })
-  const refreshFlow = vscode.commands.registerCommand('aitrace.flow.refresh', () => flowProvider.refresh())
-  const flowWatcher = vscode.workspace.onDidSaveTextDocument(() => flowProvider.refresh())
-
   const configListener = vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration('aitrace.enabled') || e.affectsConfiguration('aitrace.queueDir')) {
       void updateStagingContext()
@@ -711,17 +743,12 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
   })
 
   const installPlugin = vscode.commands.registerCommand('aitrace.installOpencodePlugin', async () => {
-    const source = vscode.Uri.joinPath(context.extensionUri, 'assets', 'opencode-plugin.ts')
-    const pluginsDir = vscode.Uri.file(path.join(os.homedir(), '.config', 'opencode', 'plugins'))
     try {
-      await vscode.workspace.fs.createDirectory(pluginsDir)
-      const bytes = await vscode.workspace.fs.readFile(source)
-      const target = vscode.Uri.joinPath(pluginsDir, 'aitrace.ts')
-      await vscode.workspace.fs.writeFile(target, bytes)
+      const { pluginsDir } = await installOpencodePlugin(context, true)
       const open = 'Show folder'
       void vscode.window
         .showInformationMessage(
-          'AItrace: OpenCode plugin installed. Restart opencode to load it.',
+          'AItrace: OpenCode plugin installed and staging enabled. Restart opencode to load it.',
           open,
         )
         .then((pick) => {
@@ -750,9 +777,6 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
     tourStore,
     tourProvider,
     tourTreeView,
-    flowIndex,
-    flowProvider,
-    flowTreeView,
     vscode.window.registerFileDecorationProvider(decorations),
     traceSelection,
     traceFile,
@@ -776,10 +800,6 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
     revealTourStep,
     resetTourProgress,
     refreshTour,
-    openFlow,
-    refreshFlow,
-    flowWatcher,
-    flowListener,
 
     // Special keys. Bound only while a session runs so the editor never inserts
     // anything for them — the document must stay immutable.

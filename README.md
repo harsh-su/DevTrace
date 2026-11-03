@@ -18,7 +18,5 @@ making you write it yourself, so you ship code you actually know.
 - **Take a guided tour.** Agents author `tour.json`; AItrace turns it into an
   ordered learning path, serves each step as explain-then-type, and records your
   scores in `tour-progress.json`.
-- **Explore code flow.** Files, functions, classes, imports, and calls rendered as
-  a graph beside the editor.
 - **Metrics.** Net/raw WPM, accuracy, consistency, indentation accuracy, average
   key interval, and most-missed keys, all derived from the full keystroke log.

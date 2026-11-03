@@ -17,8 +17,7 @@
   "activationEvents": [
     "onStartupFinished",
     "onView:aitrace.pending",
-    "onView:aitrace.tour",
-    "onView:aitrace.code"
+    "onView:aitrace.tour"
   ],
   "contributes": {
     "viewsContainers": {
@@ -43,12 +42,6 @@
           "name": "Pending changes",
           "icon": "resources/aitrace.svg",
           "contextualTitle": "AItrace"
-        },
-        {
-          "id": "aitrace.code",
-          "name": "Code flow",
-          "icon": "resources/aitrace.svg",
-          "contextualTitle": "AItrace"
         }
       ]
     },
@@ -60,12 +53,12 @@
       {
         "view": "aitrace.pending",
         "when": "!aitrace.stagingEnabled",
-        "contents": "AItrace is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on AItrace](command:aitrace.enableStaging)\n[Setup Google Antigravity Integration](command:aitrace.setupAntigravity)"
+        "contents": "AItrace is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on AItrace](command:aitrace.enableStaging)\n[Setup OpenCode Plugin](command:aitrace.installOpencodePlugin)\n[Setup Google Antigravity Integration](command:aitrace.setupAntigravity)"
       },
       {
         "view": "aitrace.pending",
         "when": "aitrace.stagingEnabled",
-        "contents": "No pending changes. When Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:aitrace.traceSelection)\n[Setup Antigravity Integration](command:aitrace.setupAntigravity)"
+        "contents": "No pending changes. When OpenCode or Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:aitrace.traceSelection)\n[Setup OpenCode Plugin](command:aitrace.installOpencodePlugin)\n[Setup Antigravity Integration](command:aitrace.setupAntigravity)"
       }
     ],
     "commands": [
@@ -80,16 +73,6 @@
       {
         "command": "aitrace.traceSelection",
         "title": "AItrace: Trace Selection"
-      },
-      {
-        "command": "aitrace.flow.open",
-        "title": "AItrace: Show Code Flow"
-      },
-      {
-        "command": "aitrace.flow.refresh",
-        "title": "AItrace: Refresh Code Flow",
-        "category": "AItrace",
-        "icon": "$(refresh)"
       },
       {
         "command": "aitrace.traceFile",
