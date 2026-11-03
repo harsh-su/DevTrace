@@ -1,7 +1,7 @@
 import { createElement, createRef } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import FileTraceView from '../src/FileTraceView.js'
-import { buildDoc, CONTEXT, createTrace, press } from '@devtrace/core'
+import { buildDoc, CONTEXT, createTrace, press } from '@tether/core'
 
 /**
  * The full-file contract: the whole file is present as text, every line keeps

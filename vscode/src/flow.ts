@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { extractFlowGraph, type FlowGraph, type FlowNode } from '@devtrace/core'
+import { extractFlowGraph, type FlowGraph, type FlowNode } from '@tether/core'
 
 const ignored = '**/{node_modules,.git,dist,build,out,.next,coverage}/**'
 const supported = '**/*.{js,jsx,ts,tsx,mjs,cjs,py,go,rs,java}'
@@ -30,11 +30,11 @@ export class FlowItem extends vscode.TreeItem {
   constructor(readonly node: FlowNode, collapsible = vscode.TreeItemCollapsibleState.None) {
     super(node.label, collapsible)
     this.id = node.id
-    this.contextValue = 'devtrace.flow.node'
+    this.contextValue = 'tether.flow.node'
     this.description = node.kind === 'file' ? node.path : `${node.kind} · line ${node.line ?? '?'}`
     this.iconPath = new vscode.ThemeIcon(node.kind === 'file' ? 'file-code' : node.kind === 'class' ? 'symbol-class' : 'symbol-function')
     this.tooltip = `${node.path}${node.line ? `:${node.line}` : ''}`
-    this.command = { command: 'devtrace.flow.open', title: 'Open code flow', arguments: [node.id] }
+    this.command = { command: 'tether.flow.open', title: 'Open code flow', arguments: [node.id] }
   }
 }
 

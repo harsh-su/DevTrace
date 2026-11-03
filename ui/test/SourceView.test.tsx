@@ -1,7 +1,7 @@
 import { createElement, createRef } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import SourceView from '../src/SourceView.js'
-import { backspace, createTrace, press, skipLine, type Trace } from '@devtrace/core'
+import { backspace, createTrace, press, skipLine, type Trace } from '@tether/core'
 
 /**
  * Locks the visual contract: the source character is never replaced. We render

@@ -8,16 +8,16 @@ import {
   validateTour,
   type Tour,
   type TourProgress,
-} from '@devtrace/core'
+} from '@tether/core'
 
 /**
- * The learning path, backed by `<workspace>/.devtrace/tour.json` — the file the
+ * The learning path, backed by `<workspace>/.tether/tour.json` — the file the
  * OpenCode agent writes when the developer asks to be guided through the
  * codebase. Scores land in `tour-progress.json`, which is the feedback the
  * agent re-reads to adapt the remaining steps.
  *
  * Both files are watched, so an agent mid-rewrite is picked up live. Like the
- * pending queue, nothing here creates the queue directory: DevTrace staging is
+ * pending queue, nothing here creates the queue directory: Tether staging is
  * owned by the enable/disable command.
  */
 export class TourStore implements vscode.Disposable {
@@ -43,8 +43,8 @@ export class TourStore implements vscode.Disposable {
   }
 
   private async watch(folder: vscode.WorkspaceFolder): Promise<void> {
-    const cfg = vscode.workspace.getConfiguration('devtrace', folder.uri)
-    const rel = cfg.get<string>('queueDir', '.devtrace')
+    const cfg = vscode.workspace.getConfiguration('tether', folder.uri)
+    const rel = cfg.get<string>('queueDir', '.tether')
     this.dir = join(folder.uri.fsPath, rel)
 
     for (const file of ['tour.json', 'tour-progress.json']) {

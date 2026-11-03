@@ -15,8 +15,8 @@ if (existsSync(openCodeSrc)) {
 }
 
 // 2. Antigravity hook
-const agSrc = join(__dirname, '..', '..', 'antigravity', 'dist', 'devtrace-hook.mjs')
-const agDest = join(assetsDir, 'antigravity-devtrace.mjs')
+const agSrc = join(__dirname, '..', '..', 'antigravity', 'dist', 'tether-hook.mjs')
+const agDest = join(assetsDir, 'antigravity-tether.mjs')
 if (existsSync(agSrc)) {
   copyFileSync(agSrc, agDest)
   console.log(`[copy-plugin] ${agSrc} -> ${agDest}`)

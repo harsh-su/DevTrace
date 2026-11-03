@@ -1,13 +1,13 @@
 node_modules
 dist
-.devtrace-session
-.devtrace/
+.tether-session
+.tether/
 *.log
 .DS_Store
 vscode/dist
 vscode/out
 vscode/assets/opencode-plugin.ts
-vscode/assets/antigravity-devtrace.mjs
+vscode/assets/antigravity-tether.mjs
 .agents/
 opencode-plugin/dist
 opencode-plugin/*.tgz

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { diffHunks } from '@devtrace/core'
+import { diffHunks } from '@tether/core'
 import type { PendingFile, PendingStore } from './staging.js'
 
 /** Added / Modified / Deleted, in the same spirit as Source Control letters. */
@@ -26,7 +26,7 @@ export class PendingItem extends vscode.TreeItem {
     const rel = vscode.workspace.asRelativePath(group.file, false)
     super(rel, vscode.TreeItemCollapsibleState.None)
     this.id = `file:${group.file}`
-    this.contextValue = 'devtrace.pending'
+    this.contextValue = 'tether.pending'
     this.resourceUri = vscode.Uri.file(group.file)
 
     let hunks = 0
@@ -42,7 +42,7 @@ export class PendingItem extends vscode.TreeItem {
         `Click to trace every outstanding change to this file.`,
     )
     this.command = {
-      command: 'devtrace.pending.trace',
+      command: 'tether.pending.trace',
       title: 'Trace file changes',
       arguments: [group.file],
     }

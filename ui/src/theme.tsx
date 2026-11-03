@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 export type Theme = 'dark' | 'light'
 
-const STORAGE_KEY = 'devtrace.theme'
+const STORAGE_KEY = 'tether.theme'
 
 function stored(): Theme | null {
   try {

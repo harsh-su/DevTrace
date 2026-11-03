@@ -40,7 +40,7 @@ let muted = false
 export function setMuted(m: boolean): void {
   muted = m
   try {
-    localStorage.setItem('devtrace.muted', m ? '1' : '0')
+    localStorage.setItem('tether.muted', m ? '1' : '0')
   } catch {
     /* ignore */
   }
@@ -48,7 +48,7 @@ export function setMuted(m: boolean): void {
 
 export function isMuted(): boolean {
   try {
-    const stored = localStorage.getItem('devtrace.muted')
+    const stored = localStorage.getItem('tether.muted')
     if (stored !== null) return stored === '1'
   } catch {
     /* ignore */

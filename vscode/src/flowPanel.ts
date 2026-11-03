@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { randomBytes } from 'node:crypto'
-import type { FlowGraph } from '@devtrace/core'
+import type { FlowGraph } from '@tether/core'
 
 export class FlowPanel {
   private static current: FlowPanel | undefined
@@ -9,7 +9,7 @@ export class FlowPanel {
   private ready = false
 
   private constructor(private readonly extensionUri: vscode.Uri, private readonly refresh: () => void) {
-    this.panel = vscode.window.createWebviewPanel('devtrace.flow', 'Code flow', vscode.ViewColumn.Beside, {
+    this.panel = vscode.window.createWebviewPanel('tether.flow', 'Code flow', vscode.ViewColumn.Beside, {
       enableScripts: true,
       retainContextWhenHidden: true,
       localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist')],

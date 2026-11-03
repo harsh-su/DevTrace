@@ -1,6 +1,6 @@
 {
-  "name": "devtrace",
-  "displayName": "DevTrace",
+  "name": "tether-code",
+  "displayName": "Tether",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
   "version": "1.0.0",
   "private": true,
@@ -16,383 +16,383 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "onStartupFinished",
-    "onView:devtrace.pending",
-    "onView:devtrace.tour",
-    "onView:devtrace.code"
+    "onView:tether.pending",
+    "onView:tether.tour",
+    "onView:tether.code"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "devtrace",
-          "title": "DevTrace",
-          "icon": "resources/devtrace.svg"
+          "id": "tether",
+          "title": "Tether",
+          "icon": "resources/tether.svg"
         }
       ]
     },
     "views": {
-      "devtrace": [
+      "tether": [
         {
-          "id": "devtrace.tour",
+          "id": "tether.tour",
           "name": "Learning path",
-          "icon": "resources/devtrace.svg",
-          "contextualTitle": "DevTrace"
+          "icon": "resources/tether.svg",
+          "contextualTitle": "Tether"
         },
         {
-          "id": "devtrace.pending",
+          "id": "tether.pending",
           "name": "Pending changes",
-          "icon": "resources/devtrace.svg",
-          "contextualTitle": "DevTrace"
+          "icon": "resources/tether.svg",
+          "contextualTitle": "Tether"
         },
         {
-          "id": "devtrace.code",
+          "id": "tether.code",
           "name": "Code flow",
-          "icon": "resources/devtrace.svg",
-          "contextualTitle": "DevTrace"
+          "icon": "resources/tether.svg",
+          "contextualTitle": "Tether"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "devtrace.tour",
-        "contents": "No learning path yet. Ask OpenCode to “tour me through this project” and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:devtrace.tour.next)"
+        "view": "tether.tour",
+        "contents": "No learning path yet. Ask OpenCode to “tour me through this project” and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:tether.tour.next)"
       },
       {
-        "view": "devtrace.pending",
-        "when": "!devtrace.stagingEnabled",
-        "contents": "DevTrace is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on DevTrace](command:devtrace.enableStaging)\n[Setup Google Antigravity Integration](command:devtrace.setupAntigravity)"
+        "view": "tether.pending",
+        "when": "!tether.stagingEnabled",
+        "contents": "Tether is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on Tether](command:tether.enableStaging)\n[Setup Google Antigravity Integration](command:tether.setupAntigravity)"
       },
       {
-        "view": "devtrace.pending",
-        "when": "devtrace.stagingEnabled",
-        "contents": "No pending changes. When Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:devtrace.traceSelection)\n[Setup Antigravity Integration](command:devtrace.setupAntigravity)"
+        "view": "tether.pending",
+        "when": "tether.stagingEnabled",
+        "contents": "No pending changes. When Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:tether.traceSelection)\n[Setup Antigravity Integration](command:tether.setupAntigravity)"
       }
     ],
     "commands": [
       {
-        "command": "devtrace.openSidebar",
-        "title": "DevTrace: Open Sidebar (Pending Changes)"
+        "command": "tether.openSidebar",
+        "title": "Tether: Open Sidebar (Pending Changes)"
       },
       {
-        "command": "devtrace.setupAntigravity",
-        "title": "DevTrace: Setup Google Antigravity Integration"
+        "command": "tether.setupAntigravity",
+        "title": "Tether: Setup Google Antigravity Integration"
       },
       {
-        "command": "devtrace.traceSelection",
-        "title": "DevTrace: Trace Selection"
+        "command": "tether.traceSelection",
+        "title": "Tether: Trace Selection"
       },
       {
-        "command": "devtrace.flow.open",
-        "title": "DevTrace: Show Code Flow"
+        "command": "tether.flow.open",
+        "title": "Tether: Show Code Flow"
       },
       {
-        "command": "devtrace.flow.refresh",
-        "title": "DevTrace: Refresh Code Flow",
-        "category": "DevTrace",
+        "command": "tether.flow.refresh",
+        "title": "Tether: Refresh Code Flow",
+        "category": "Tether",
         "icon": "$(refresh)"
       },
       {
-        "command": "devtrace.traceFile",
-        "title": "DevTrace: Trace File Range"
+        "command": "tether.traceFile",
+        "title": "Tether: Trace File Range"
       },
       {
-        "command": "devtrace.endSession",
-        "title": "DevTrace: End Trace Session"
+        "command": "tether.endSession",
+        "title": "Tether: End Trace Session"
       },
       {
-        "command": "devtrace.showResults",
-        "title": "DevTrace: Show Last Results"
+        "command": "tether.showResults",
+        "title": "Tether: Show Last Results"
       },
       {
-        "command": "devtrace.installOpencodePlugin",
-        "title": "DevTrace: Install OpenCode Plugin"
+        "command": "tether.installOpencodePlugin",
+        "title": "Tether: Install OpenCode Plugin"
       },
       {
-        "command": "devtrace.tour.trace",
+        "command": "tether.tour.trace",
         "title": "Trace Step",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(keyboard)"
       },
       {
-        "command": "devtrace.tour.next",
-        "title": "DevTrace: Trace Next Learning Step",
-        "category": "DevTrace",
+        "command": "tether.tour.next",
+        "title": "Tether: Trace Next Learning Step",
+        "category": "Tether",
         "icon": "$(play)"
       },
       {
-        "command": "devtrace.tour.reveal",
+        "command": "tether.tour.reveal",
         "title": "Reveal Step File",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "devtrace.tour.reset",
+        "command": "tether.tour.reset",
         "title": "Clear Learning Path Progress",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(clear-all)"
       },
       {
-        "command": "devtrace.tour.refresh",
+        "command": "tether.tour.refresh",
         "title": "Refresh Learning Path",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(refresh)"
       },
       {
-        "command": "devtrace.pending.accept",
+        "command": "tether.pending.accept",
         "title": "Accept Change (Write to Disk)",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(check)"
       },
       {
-        "command": "devtrace.pending.acceptAll",
+        "command": "tether.pending.acceptAll",
         "title": "Accept All Pending Changes",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(check-all)"
       },
       {
-        "command": "devtrace.pending.trace",
+        "command": "tether.pending.trace",
         "title": "Trace Change",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(keyboard)"
       },
       {
-        "command": "devtrace.pending.discard",
+        "command": "tether.pending.discard",
         "title": "Discard Change",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(trash)"
       },
       {
-        "command": "devtrace.pending.reveal",
+        "command": "tether.pending.reveal",
         "title": "Reveal File",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "devtrace.pending.traceAll",
+        "command": "tether.pending.traceAll",
         "title": "Trace All Pending",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(play)"
       },
       {
-        "command": "devtrace.pending.clear",
+        "command": "tether.pending.clear",
         "title": "Discard All Pending",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(clear-all)"
       },
       {
-        "command": "devtrace.pending.refresh",
+        "command": "tether.pending.refresh",
         "title": "Refresh Pending Changes",
-        "category": "DevTrace",
+        "category": "Tether",
         "icon": "$(refresh)"
       },
       {
-        "command": "devtrace.enableStaging",
-        "title": "Turn On DevTrace",
-        "category": "DevTrace",
+        "command": "tether.enableStaging",
+        "title": "Turn On Tether",
+        "category": "Tether",
         "icon": "$(circle-outline)"
       },
       {
-        "command": "devtrace.disableStaging",
-        "title": "Turn Off DevTrace",
-        "category": "DevTrace",
+        "command": "tether.disableStaging",
+        "title": "Turn Off Tether",
+        "category": "Tether",
         "icon": "$(circle-filled)"
       },
       {
-        "command": "devtrace.enter",
-        "title": "DevTrace: Newline"
+        "command": "tether.enter",
+        "title": "Tether: Newline"
       },
       {
-        "command": "devtrace.tab",
-        "title": "DevTrace: Tab"
+        "command": "tether.tab",
+        "title": "Tether: Tab"
       },
       {
-        "command": "devtrace.backspace",
-        "title": "DevTrace: Backspace"
+        "command": "tether.backspace",
+        "title": "Tether: Backspace"
       },
       {
-        "command": "devtrace.skipLine",
-        "title": "DevTrace: Skip Line"
+        "command": "tether.skipLine",
+        "title": "Tether: Skip Line"
       }
     ],
     "keybindings": [
       {
-        "command": "devtrace.endSession",
+        "command": "tether.endSession",
         "key": "escape",
-        "when": "devtrace.tracing"
+        "when": "tether.tracing"
       },
       {
-        "command": "devtrace.enter",
+        "command": "tether.enter",
         "key": "enter",
-        "when": "devtrace.tracing"
+        "when": "tether.tracing"
       },
       {
-        "command": "devtrace.tab",
+        "command": "tether.tab",
         "key": "tab",
-        "when": "devtrace.tracing"
+        "when": "tether.tracing"
       },
       {
-        "command": "devtrace.backspace",
+        "command": "tether.backspace",
         "key": "backspace",
-        "when": "devtrace.tracing"
+        "when": "tether.tracing"
       },
       {
-        "command": "devtrace.skipLine",
+        "command": "tether.skipLine",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
-        "when": "devtrace.tracing"
+        "when": "tether.tracing"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "devtrace.tour.next",
-          "when": "view == devtrace.tour && devtrace.tourHasTour",
+          "command": "tether.tour.next",
+          "when": "view == tether.tour && tether.tourHasTour",
           "group": "navigation@0"
         },
         {
-          "command": "devtrace.tour.refresh",
-          "when": "view == devtrace.tour",
+          "command": "tether.tour.refresh",
+          "when": "view == tether.tour",
           "group": "navigation@1"
         },
         {
-          "command": "devtrace.tour.reset",
-          "when": "view == devtrace.tour && devtrace.tourHasTour",
+          "command": "tether.tour.reset",
+          "when": "view == tether.tour && tether.tourHasTour",
           "group": "navigation@2"
         },
         {
-          "command": "devtrace.enableStaging",
-          "when": "view == devtrace.pending && !devtrace.stagingEnabled",
+          "command": "tether.enableStaging",
+          "when": "view == tether.pending && !tether.stagingEnabled",
           "group": "navigation@0"
         },
         {
-          "command": "devtrace.disableStaging",
-          "when": "view == devtrace.pending && devtrace.stagingEnabled",
+          "command": "tether.disableStaging",
+          "when": "view == tether.pending && tether.stagingEnabled",
           "group": "navigation@0"
         },
         {
-          "command": "devtrace.pending.acceptAll",
-          "when": "view == devtrace.pending",
+          "command": "tether.pending.acceptAll",
+          "when": "view == tether.pending",
           "group": "navigation@1"
         },
         {
-          "command": "devtrace.pending.traceAll",
-          "when": "view == devtrace.pending",
+          "command": "tether.pending.traceAll",
+          "when": "view == tether.pending",
           "group": "navigation@2"
         },
         {
-          "command": "devtrace.pending.refresh",
-          "when": "view == devtrace.pending",
+          "command": "tether.pending.refresh",
+          "when": "view == tether.pending",
           "group": "navigation@3"
         },
         {
-          "command": "devtrace.pending.clear",
-          "when": "view == devtrace.pending",
+          "command": "tether.pending.clear",
+          "when": "view == tether.pending",
           "group": "navigation@4"
         }
       ],
       "view/item/context": [
         {
-          "command": "devtrace.tour.reveal",
-          "when": "view == devtrace.tour && viewItem == devtrace.tour.done",
+          "command": "tether.tour.reveal",
+          "when": "view == tether.tour && viewItem == tether.tour.done",
           "group": "1_open"
         },
         {
-          "command": "devtrace.pending.accept",
-          "when": "view == devtrace.pending && viewItem == devtrace.pending",
+          "command": "tether.pending.accept",
+          "when": "view == tether.pending && viewItem == tether.pending",
           "group": "inline@0"
         },
         {
-          "command": "devtrace.pending.trace",
-          "when": "view == devtrace.pending && viewItem == devtrace.pending",
+          "command": "tether.pending.trace",
+          "when": "view == tether.pending && viewItem == tether.pending",
           "group": "inline@1"
         },
         {
-          "command": "devtrace.pending.discard",
-          "when": "view == devtrace.pending && viewItem == devtrace.pending",
+          "command": "tether.pending.discard",
+          "when": "view == tether.pending && viewItem == tether.pending",
           "group": "inline@2"
         },
         {
-          "command": "devtrace.pending.reveal",
-          "when": "view == devtrace.pending && viewItem == devtrace.pending",
+          "command": "tether.pending.reveal",
+          "when": "view == tether.pending && viewItem == tether.pending",
           "group": "1_open"
         }
       ],
       "commandPalette": [
         {
-          "command": "devtrace.tour.trace",
+          "command": "tether.tour.trace",
           "when": "false"
         },
         {
-          "command": "devtrace.tour.reveal",
+          "command": "tether.tour.reveal",
           "when": "false"
         },
         {
-          "command": "devtrace.pending.trace",
+          "command": "tether.pending.trace",
           "when": "false"
         },
         {
-          "command": "devtrace.pending.discard",
+          "command": "tether.pending.discard",
           "when": "false"
         },
         {
-          "command": "devtrace.pending.reveal",
+          "command": "tether.pending.reveal",
           "when": "false"
         },
         {
-          "command": "devtrace.enter",
+          "command": "tether.enter",
           "when": "false"
         },
         {
-          "command": "devtrace.tab",
+          "command": "tether.tab",
           "when": "false"
         },
         {
-          "command": "devtrace.backspace",
+          "command": "tether.backspace",
           "when": "false"
         },
         {
-          "command": "devtrace.skipLine",
+          "command": "tether.skipLine",
           "when": "false"
         }
       ]
     },
     "configuration": {
-      "title": "DevTrace",
+      "title": "Tether",
       "properties": {
-        "devtrace.advanceOnError": {
+        "tether.advanceOnError": {
           "type": "boolean",
           "default": true,
-          "description": "Advance the cursor even on a wrong keystroke (DevTrace's non-blocking model). When false, the wrong keystroke is rejected and the ghost stays put."
+          "description": "Advance the cursor even on a wrong keystroke (Tether's non-blocking model). When false, the wrong keystroke is rejected and the ghost stays put."
         },
-        "devtrace.showGhost": {
+        "tether.showGhost": {
           "type": "boolean",
           "default": true,
           "description": "Render the remaining target text as dimmed ghost text in the editor."
         },
-        "devtrace.playSound": {
+        "tether.playSound": {
           "type": "boolean",
           "default": false,
           "description": "Play subtle audio feedback on keystrokes (in addition to any editor keystroke sound)."
         },
-        "devtrace.queueDir": {
+        "tether.queueDir": {
           "type": "string",
-          "default": ".devtrace",
+          "default": ".tether",
           "description": "Workspace-relative directory the OpenCode plugin writes staged AI changes to."
         },
-        "devtrace.debug": {
+        "tether.debug": {
           "type": "boolean",
           "default": false,
-          "description": "Log trace input handling to the 'DevTrace' output channel. Useful if typing is not being scored."
+          "description": "Log trace input handling to the 'Tether' output channel. Useful if typing is not being scored."
         },
-        "devtrace.autoTrace": {
+        "tether.autoTrace": {
           "type": "boolean",
           "default": false,
-          "description": "Open the trace panel for each pending file automatically. When off, files wait in the DevTrace sidebar until you start them."
+          "description": "Open the trace panel for each pending file automatically. When off, files wait in the Tether sidebar until you start them."
         },
-        "devtrace.enabled": {
+        "tether.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether DevTrace staging is on. The DevTrace sidebar toggle also controls this. Staging is active when the queue directory (.devtrace) exists."
+          "description": "Whether Tether staging is on. The Tether sidebar toggle also controls this. Staging is active when the queue directory (.tether) exists."
         }
       }
     }
@@ -404,8 +404,8 @@
     "package": "npm run build && npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {
-    "@devtrace/core": "*",
-    "@devtrace/ui": "*",
+    "@tether/core": "*",
+    "@tether/ui": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

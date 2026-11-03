@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { advanceSkipped, autoAdvanceLeadingIndent, autoAdvanceNonTypable, autoFillPair, autocompleteLine, backspace, isComplete, press, recordError, skipLine, type Trace } from '@devtrace/core'
+import { advanceSkipped, autoAdvanceLeadingIndent, autoAdvanceNonTypable, autoFillPair, autocompleteLine, backspace, isComplete, press, recordError, skipLine, type Trace } from '@tether/core'
 
 export type FeedbackKind = 'ok' | 'err' | 'enter' | 'tab' | 'skip'
 
@@ -15,9 +15,9 @@ export interface TraceInputHandlers {
 }
 
 /**
- * The keyboard contract shared by every DevTrace surface. It is deliberately
+ * The keyboard contract shared by every Tether surface. It is deliberately
  * host-agnostic: the browser tab and the VS Code webview both attach it and get
- * identical scoring, because both feed the same `@devtrace/core` engine.
+ * identical scoring, because both feed the same `@tether/core` engine.
  */
 export function useTraceInput(active: boolean, trace: Trace | null, handlers: TraceInputHandlers): void {
   const { onBump, onComplete, onEscape, onFeedback } = handlers

@@ -1,5 +1,5 @@
 {
-  "name": "devtrace",
+  "name": "tether",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -20,13 +20,13 @@
     "test:ui": "tsx ui/test/SourceView.test.tsx && tsx ui/test/FileTraceView.test.tsx",
     "test:plugin": "tsx opencode-plugin/test/bridge.test.ts",
     "test:antigravity": "tsx antigravity/test/hook.test.ts",
-    "build:plugin": "npm --workspace opencode-devtrace run build",
-    "package:extension": "npm --workspace devtrace run package",
+    "build:plugin": "npm --workspace opencode-tether run build",
+    "package:extension": "npm --workspace tether-code run package",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devtrace/core": "*",
-    "@devtrace/ui": "*",
+    "@tether/core": "*",
+    "@tether/ui": "*",
     "fastify": "^5.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

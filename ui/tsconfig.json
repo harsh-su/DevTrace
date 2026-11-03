@@ -6,7 +6,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@devtrace/core": ["../core/src/index.ts"]
+      "@tether/core": ["../core/src/index.ts"]
     }
   },
   "include": ["src", "test"]

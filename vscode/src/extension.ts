@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { existsSync } from 'node:fs'
-import { diffHunks, languageId, lineSlice, type Hunk, type Metrics, type Trace } from '@devtrace/core'
+import { diffHunks, languageId, lineSlice, type Hunk, type Metrics, type Trace } from '@tether/core'
 import { TraceSession } from './session.js'
 import { ResultsPanel } from './results.js'
 import { PendingStore, type PendingFile } from './staging.js'
@@ -40,16 +40,16 @@ const hooks = {
   onProgress: (t: Trace): void => {
     const total = t.doc.text.length
     const pct = total > 0 ? Math.round((t.cursor / total) * 100) : 0
-    statusItem.text = `$(keyboard) DevTrace ${pct}%`
+    statusItem.text = `$(keyboard) Tether ${pct}%`
     statusItem.tooltip = 'Tracing — click (or Esc) to end the session'
     statusItem.show()
   },
   onFinish: (t: Trace, m: Metrics, completed: boolean): void => {
     const label = TraceSession.active?.sessionLabel ?? 'session'
     lastResults = { trace: t, metrics: m, label, completed }
-    statusItem.text = '$(keyboard) DevTrace'
-    statusItem.command = 'devtrace.openSidebar'
-    statusItem.tooltip = 'DevTrace: Click to open Pending Changes sidebar'
+    statusItem.text = '$(keyboard) Tether'
+    statusItem.command = 'tether.openSidebar'
+    statusItem.tooltip = 'Tether: Click to open Pending Changes sidebar'
     ResultsPanel.show(t, m, label, completed)
   },
 }
@@ -63,7 +63,7 @@ async function begin(
   onDone?: () => void,
 ): Promise<void> {
   if (TraceSession.active) {
-    void vscode.window.showWarningMessage('A DevTrace session is already running.')
+    void vscode.window.showWarningMessage('A Tether session is already running.')
     return
   }
   const wrapped = {
@@ -99,7 +99,7 @@ async function applyPending(group: PendingFile): Promise<'save' | 'discard'> {
   const hunks = diffHunks(current, group.after)
   if (hunks.length === 0) {
     await store.removeSnapshots(group.entries)
-    void vscode.window.showInformationMessage('DevTrace: those staged changes were already applied.')
+    void vscode.window.showInformationMessage('Tether: those staged changes were already applied.')
     return 'save'
   }
 
@@ -111,7 +111,7 @@ async function applyPending(group: PendingFile): Promise<'save' | 'discard'> {
   // the developer sees the complete file as context and only types the changes.
   const regions = hunks.map((h) => ({ start: h.afterStart, target: h.newText }))
 
-  statusItem.text = '$(keyboard) DevTrace 0%'
+  statusItem.text = '$(keyboard) Tether 0%'
   statusItem.tooltip = 'Tracing an AI change — Save writes what you type, Esc discards'
   statusItem.show()
 
@@ -119,7 +119,7 @@ async function applyPending(group: PendingFile): Promise<'save' | 'discard'> {
     language: languageId(group.file),
   })
 
-  statusItem.text = '$(keyboard) DevTrace'
+  statusItem.text = '$(keyboard) Tether'
   statusItem.tooltip = 'Click to end a running session'
 
   if (result.action === 'discard') return 'discard'
@@ -165,7 +165,7 @@ async function writeHunks(
   edit.replace(uri, full, out)
   const applied = await vscode.workspace.applyEdit(edit)
   if (!applied) {
-    void vscode.window.showErrorMessage('DevTrace: could not write the traced change.')
+    void vscode.window.showErrorMessage('Tether: could not write the traced change.')
     return
   }
   await doc.save()
@@ -174,7 +174,7 @@ async function writeHunks(
 /** Trace one pending file, retiring the records in the snapshot on save. */
 async function tracePendingFile(file: string): Promise<'save' | 'discard' | undefined> {
   if (processing) {
-    void vscode.window.showInformationMessage('DevTrace is already tracing a change.')
+    void vscode.window.showInformationMessage('Tether is already tracing a change.')
     return undefined
   }
   processing = true
@@ -188,7 +188,7 @@ async function tracePendingFile(file: string): Promise<'save' | 'discard' | unde
 }
 
 function autoTraceEnabled(): boolean {
-  return vscode.workspace.getConfiguration('devtrace').get<boolean>('autoTrace', false)
+  return vscode.workspace.getConfiguration('tether').get<boolean>('autoTrace', false)
 }
 
 /**
@@ -201,14 +201,14 @@ async function traceTourStep(stepId: string): Promise<void> {
   const tour = tourStore.getTour()
   if (!tour) {
     void vscode.window.showInformationMessage(
-      'DevTrace: no learning path yet. Ask OpenCode to "tour me through this project".',
+      'Tether: no learning path yet. Ask OpenCode to "tour me through this project".',
     )
     return
   }
   const idx = tour.steps.findIndex((s) => s.id === stepId)
   if (idx < 0) {
     void vscode.window.showWarningMessage(
-      `DevTrace: no step "${stepId}" in the current learning path.`,
+      `Tether: no step "${stepId}" in the current learning path.`,
     )
     return
   }
@@ -222,14 +222,14 @@ async function traceTourStep(stepId: string): Promise<void> {
     text = (await vscode.workspace.openTextDocument(abs)).getText()
   } catch {
     void vscode.window.showWarningMessage(
-      `DevTrace: the step points at ${step.file}, which could not be read. The tour may be stale — ask OpenCode to rebuild it.`,
+      `Tether: the step points at ${step.file}, which could not be read. The tour may be stale — ask OpenCode to rebuild it.`,
     )
     return
   }
 
   const target = lineSlice(text, step.start, step.lines)
   if (!target.trim()) {
-    void vscode.window.showWarningMessage(`DevTrace: lines ${step.start}+ of ${step.file} are empty.`)
+    void vscode.window.showWarningMessage(`Tether: lines ${step.start}+ of ${step.file} are empty.`)
     return
   }
 
@@ -237,7 +237,7 @@ async function traceTourStep(stepId: string): Promise<void> {
     `Step ${idx + 1}/${tour.steps.length} · ${step.title}` +
     (step.concept ? ` — ${step.concept}` : '')
 
-  statusItem.text = '$(keyboard) DevTrace 0%'
+  statusItem.text = '$(keyboard) Tether 0%'
   statusItem.tooltip = 'Tracing a learning-path step — Esc pauses, does not record'
   statusItem.show()
 
@@ -247,7 +247,7 @@ async function traceTourStep(stepId: string): Promise<void> {
     language: languageId(step.file),
   })
 
-  statusItem.text = '$(keyboard) DevTrace'
+  statusItem.text = '$(keyboard) Tether'
   tourProvider.refresh()
 
   if (result.action !== 'save' || !result.metrics) return
@@ -257,7 +257,7 @@ async function traceTourStep(stepId: string): Promise<void> {
   const done = tourStore.done(stepId)
   const next = tour.steps[idx + 1]
   const summary =
-    `DevTrace · ${step.title}: ${Math.round(m.netWpm)} wpm, ` +
+    `Tether · ${step.title}: ${Math.round(m.netWpm)} wpm, ` +
     `${Math.round(m.accuracy * 100)}% — ${done ? 'step complete' : 'retrace this step to finish it'}`
   const actions = next && done ? ['Next step'] : []
   const pick = await vscode.window.showInformationMessage(
@@ -293,15 +293,15 @@ async function traceAll(): Promise<void> {
   }
 }
 
-/** The workspace-relative queue directory, e.g. `<root>/.devtrace`. */
+/** The workspace-relative queue directory, e.g. `<root>/.tether`. */
 function queueDirUri(folder: vscode.WorkspaceFolder): vscode.Uri {
-  const cfg = vscode.workspace.getConfiguration('devtrace', folder.uri)
-  const rel = cfg.get<string>('queueDir', '.devtrace')
+  const cfg = vscode.workspace.getConfiguration('tether', folder.uri)
+  const rel = cfg.get<string>('queueDir', '.tether')
   return vscode.Uri.joinPath(folder.uri, rel)
 }
 
 /**
- * DevTrace staging is on exactly when a `.devtrace/` queue directory exists —
+ * Tether staging is on exactly when a `.tether/` queue directory exists —
  * that is the same signal the OpenCode plugin watches.
  */
 function isStagingEnabled(): boolean {
@@ -309,12 +309,12 @@ function isStagingEnabled(): boolean {
 }
 
 async function updateStagingContext(): Promise<void> {
-  await vscode.commands.executeCommand('setContext', 'devtrace.stagingEnabled', isStagingEnabled())
+  await vscode.commands.executeCommand('setContext', 'tether.stagingEnabled', isStagingEnabled())
 }
 
 /** On startup, honour the persisted preference by ensuring the queue exists. */
 async function ensureStagingFromSetting(): Promise<void> {
-  if (!vscode.workspace.getConfiguration('devtrace').get<boolean>('enabled', true)) return
+  if (!vscode.workspace.getConfiguration('tether').get<boolean>('enabled', true)) return
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
     try {
       await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(queueDirUri(folder), 'pending'))
@@ -337,14 +337,14 @@ async function setStaging(enabled: boolean): Promise<void> {
       n > 0
         ? `This removes ${n} pending file${n === 1 ? '' : 's'} that haven't been traced.`
         : 'OpenCode edits will no longer be staged for hand-typing.'
-    const pick = await vscode.window.showWarningMessage(`Turn off DevTrace? ${detail}`, { modal: true }, 'Turn off')
+    const pick = await vscode.window.showWarningMessage(`Turn off Tether? ${detail}`, { modal: true }, 'Turn off')
     if (pick !== 'Turn off') return
   }
 
   const folders = vscode.workspace.workspaceFolders ?? []
   const target =
     folders.length > 0 ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
-  await vscode.workspace.getConfiguration('devtrace').update('enabled', enabled, target)
+  await vscode.workspace.getConfiguration('tether').update('enabled', enabled, target)
 
   for (const folder of folders) {
     const dir = queueDirUri(folder)
@@ -363,14 +363,14 @@ async function setStaging(enabled: boolean): Promise<void> {
 export function activate(context: vscode.ExtensionContext): void {
   extensionUri = context.extensionUri
   statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-  statusItem.command = 'devtrace.openSidebar'
-  statusItem.text = '$(keyboard) DevTrace'
-  statusItem.tooltip = 'DevTrace: Click to open Pending Changes sidebar'
+  statusItem.command = 'tether.openSidebar'
+  statusItem.text = '$(keyboard) Tether'
+  statusItem.tooltip = 'Tether: Click to open Pending Changes sidebar'
   statusItem.show()
 
   TracePanel.onProgress = (pct) => {
-    statusItem.text = `$(keyboard) DevTrace ${pct}%`
-    statusItem.command = 'devtrace.endSession'
+    statusItem.text = `$(keyboard) Tether ${pct}%`
+    statusItem.command = 'tether.endSession'
     statusItem.tooltip = 'Tracing — click (or Esc) to end session'
     statusItem.show()
   }
@@ -379,7 +379,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // be typed by hand.
   store = new PendingStore(() => void autoPump())
   treeProvider = new PendingTreeProvider(store)
-  treeView = vscode.window.createTreeView('devtrace.pending', {
+  treeView = vscode.window.createTreeView('tether.pending', {
     treeDataProvider: treeProvider,
   })
   const decorations = new PendingDecorations(store)
@@ -388,9 +388,9 @@ export function activate(context: vscode.ExtensionContext): void {
     const n = store.groups().length
     treeView.badge = n > 0 ? { value: n, tooltip: `${n} pending file${n === 1 ? '' : 's'}` } : undefined
     if (!TraceSession.active) {
-      statusItem.text = n > 0 ? `$(keyboard) DevTrace (${n})` : '$(keyboard) DevTrace'
-      statusItem.command = 'devtrace.openSidebar'
-      statusItem.tooltip = 'DevTrace: Click to open Pending Changes sidebar'
+      statusItem.text = n > 0 ? `$(keyboard) Tether (${n})` : '$(keyboard) Tether'
+      statusItem.command = 'tether.openSidebar'
+      statusItem.tooltip = 'Tether: Click to open Pending Changes sidebar'
       statusItem.show()
     }
   })
@@ -405,11 +405,11 @@ export function activate(context: vscode.ExtensionContext): void {
   // typing each step.
   tourStore = new TourStore()
   tourProvider = new TourTreeProvider(tourStore)
-  tourTreeView = vscode.window.createTreeView('devtrace.tour', {
+  tourTreeView = vscode.window.createTreeView('tether.tour', {
     treeDataProvider: tourProvider,
   })
   const updateTourContext = (): void => {
-    void vscode.commands.executeCommand('setContext', 'devtrace.tourHasTour', tourStore.loaded)
+    void vscode.commands.executeCommand('setContext', 'tether.tourHasTour', tourStore.loaded)
     const tour = tourStore.getTour()
     let badge: { value: number; tooltip: string } | undefined
     if (tour) {
@@ -423,11 +423,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   flowIndex = new FlowIndex()
   flowProvider = new FlowTreeProvider(flowIndex)
-  flowTreeView = vscode.window.createTreeView('devtrace.code', { treeDataProvider: flowProvider })
+  flowTreeView = vscode.window.createTreeView('tether.code', { treeDataProvider: flowProvider })
   const flowListener = flowIndex.onDidChange((graph) => FlowPanel.update(graph))
   void flowIndex.scan()
 
-  const traceSelection = vscode.commands.registerCommand('devtrace.traceSelection', async () => {
+  const traceSelection = vscode.commands.registerCommand('tether.traceSelection', async () => {
     const editor = vscode.window.activeTextEditor
     if (!editor) return
     if (editor.selection.isEmpty) {
@@ -443,7 +443,7 @@ export function activate(context: vscode.ExtensionContext): void {
     await begin(editor, target, range, false)
   })
 
-  const traceFile = vscode.commands.registerCommand('devtrace.traceFile', async () => {
+  const traceFile = vscode.commands.registerCommand('tether.traceFile', async () => {
     const editor = vscode.window.activeTextEditor
     if (!editor) return
     const doc = editor.document
@@ -456,14 +456,14 @@ export function activate(context: vscode.ExtensionContext): void {
     await begin(editor, target, range, false)
   })
 
-  const endSession = vscode.commands.registerCommand('devtrace.endSession', () => {
+  const endSession = vscode.commands.registerCommand('tether.endSession', () => {
     TracePanel.discardActive()
     TraceSession.active?.abort()
   })
 
-  const showResults = vscode.commands.registerCommand('devtrace.showResults', () => {
+  const showResults = vscode.commands.registerCommand('tether.showResults', () => {
     if (!lastResults) {
-      void vscode.window.showInformationMessage('No DevTrace results yet.')
+      void vscode.window.showInformationMessage('No Tether results yet.')
       return
     }
     ResultsPanel.show(lastResults.trace, lastResults.metrics, lastResults.label, lastResults.completed)
@@ -491,13 +491,13 @@ async function applyDirectly(group: PendingFile): Promise<void> {
   await vscode.workspace.fs.writeFile(uri, fullBytes)
 }
 
-  const tracePending = vscode.commands.registerCommand('devtrace.pending.trace', async (arg: unknown) => {
+  const tracePending = vscode.commands.registerCommand('tether.pending.trace', async (arg: unknown) => {
     const file = extractFile(arg)
     if (!file) return
     await tracePendingFile(file)
   })
 
-  const acceptPending = vscode.commands.registerCommand('devtrace.pending.accept', async (arg: unknown) => {
+  const acceptPending = vscode.commands.registerCommand('tether.pending.accept', async (arg: unknown) => {
     const file = extractFile(arg)
     if (!file) return
     const group = store.group(file)
@@ -505,11 +505,11 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     await applyDirectly(group)
     await store.removeSnapshots(group.entries)
     void vscode.window.showInformationMessage(
-      `DevTrace: Accepted changes for ${vscode.workspace.asRelativePath(group.file, false)}.`,
+      `Tether: Accepted changes for ${vscode.workspace.asRelativePath(group.file, false)}.`,
     )
   })
 
-  const acceptAllPending = vscode.commands.registerCommand('devtrace.pending.acceptAll', async () => {
+  const acceptAllPending = vscode.commands.registerCommand('tether.pending.acceptAll', async () => {
     const groups = store.groups()
     if (groups.length === 0) return
     for (const group of groups) {
@@ -517,11 +517,11 @@ async function applyDirectly(group: PendingFile): Promise<void> {
       await store.removeSnapshots(group.entries)
     }
     void vscode.window.showInformationMessage(
-      `DevTrace: Accepted all changes for ${groups.length} pending file${groups.length === 1 ? '' : 's'}.`,
+      `Tether: Accepted all changes for ${groups.length} pending file${groups.length === 1 ? '' : 's'}.`,
     )
   })
 
-  const discardPending = vscode.commands.registerCommand('devtrace.pending.discard', async (arg: unknown) => {
+  const discardPending = vscode.commands.registerCommand('tether.pending.discard', async (arg: unknown) => {
     const file = extractFile(arg)
     if (!file) return
     const group = store.group(file)
@@ -538,19 +538,19 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     }
   })
 
-  const revealPending = vscode.commands.registerCommand('devtrace.pending.reveal', async (arg: unknown) => {
+  const revealPending = vscode.commands.registerCommand('tether.pending.reveal', async (arg: unknown) => {
     const file = extractFile(arg)
     if (!file) return
     try {
       await vscode.window.showTextDocument(vscode.Uri.file(file))
     } catch {
-      void vscode.window.showWarningMessage('DevTrace: that file no longer exists.')
+      void vscode.window.showWarningMessage('Tether: that file no longer exists.')
     }
   })
 
-  const traceAllPending = vscode.commands.registerCommand('devtrace.pending.traceAll', () => void traceAll())
+  const traceAllPending = vscode.commands.registerCommand('tether.pending.traceAll', () => void traceAll())
 
-  const clearPending = vscode.commands.registerCommand('devtrace.pending.clear', async () => {
+  const clearPending = vscode.commands.registerCommand('tether.pending.clear', async () => {
     const groups = store.groups()
     if (groups.length === 0) return
     const pick = await vscode.window.showWarningMessage(
@@ -562,28 +562,28 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     for (const group of groups) await store.removeSnapshots(group.entries)
   })
 
-  const refreshPending = vscode.commands.registerCommand('devtrace.pending.refresh', () =>
+  const refreshPending = vscode.commands.registerCommand('tether.pending.refresh', () =>
     treeProvider.refresh(),
   )
 
-  const enableStaging = vscode.commands.registerCommand('devtrace.enableStaging', () => setStaging(true))
-  const disableStaging = vscode.commands.registerCommand('devtrace.disableStaging', () => setStaging(false))
+  const enableStaging = vscode.commands.registerCommand('tether.enableStaging', () => setStaging(true))
+  const disableStaging = vscode.commands.registerCommand('tether.disableStaging', () => setStaging(false))
 
-  const traceTour = vscode.commands.registerCommand('devtrace.tour.trace', async (id: string) => {
+  const traceTour = vscode.commands.registerCommand('tether.tour.trace', async (id: string) => {
     if (!tourStore.loaded) {
       void vscode.window.showInformationMessage(
-        'DevTrace: no learning path yet. Ask OpenCode to "tour me through this project".',
+        'Tether: no learning path yet. Ask OpenCode to "tour me through this project".',
       )
       return
     }
     await traceTourStep(id)
   })
 
-  const traceNextTourStep = vscode.commands.registerCommand('devtrace.tour.next', async () => {
+  const traceNextTourStep = vscode.commands.registerCommand('tether.tour.next', async () => {
     const tour = tourStore.getTour()
     if (!tour) {
       void vscode.window.showInformationMessage(
-        'DevTrace: no learning path yet. Ask OpenCode to "tour me through this project".',
+        'Tether: no learning path yet. Ask OpenCode to "tour me through this project".',
       )
       return
     }
@@ -591,7 +591,7 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     if (step) await traceTourStep(step.id)
   })
 
-  const revealTourStep = vscode.commands.registerCommand('devtrace.tour.reveal', async (id: string) => {
+  const revealTourStep = vscode.commands.registerCommand('tether.tour.reveal', async (id: string) => {
     const tour = tourStore.getTour()
     const step = tour?.steps.find((s) => s.id === id)
     if (!tour || !step) return
@@ -606,13 +606,13 @@ async function applyDirectly(group: PendingFile): Promise<void> {
         vscode.TextEditorRevealType.InCenter,
       )
     } catch {
-      void vscode.window.showWarningMessage(`DevTrace: could not open ${step.file}.`)
+      void vscode.window.showWarningMessage(`Tether: could not open ${step.file}.`)
     }
   })
 
-  const resetTourProgress = vscode.commands.registerCommand('devtrace.tour.reset', async () => {
+  const resetTourProgress = vscode.commands.registerCommand('tether.tour.reset', async () => {
     if (!tourStore.loaded) {
-      void vscode.window.showInformationMessage('DevTrace: no learning path to reset.')
+      void vscode.window.showInformationMessage('Tether: no learning path to reset.')
       return
     }
     const pick = await vscode.window.showWarningMessage(
@@ -623,11 +623,11 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     if (pick === 'Clear progress') await tourStore.resetProgress()
   })
 
-  const refreshTour = vscode.commands.registerCommand('devtrace.tour.refresh', () =>
+  const refreshTour = vscode.commands.registerCommand('tether.tour.refresh', () =>
     tourProvider.refresh(),
   )
 
-  const openFlow = vscode.commands.registerCommand('devtrace.flow.open', async (id?: string) => {
+  const openFlow = vscode.commands.registerCommand('tether.flow.open', async (id?: string) => {
     const node = id ? flowIndex.node(id) : undefined
     if (node && node.kind !== 'external') {
       const folder = vscode.workspace.workspaceFolders?.[0]
@@ -642,28 +642,28 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     }
     FlowPanel.show(extensionUri, flowIndex.getGraph(), id, () => void flowIndex.scan())
   })
-  const refreshFlow = vscode.commands.registerCommand('devtrace.flow.refresh', () => flowProvider.refresh())
+  const refreshFlow = vscode.commands.registerCommand('tether.flow.refresh', () => flowProvider.refresh())
   const flowWatcher = vscode.workspace.onDidSaveTextDocument(() => flowProvider.refresh())
 
   const configListener = vscode.workspace.onDidChangeConfiguration((e) => {
-    if (e.affectsConfiguration('devtrace.enabled') || e.affectsConfiguration('devtrace.queueDir')) {
+    if (e.affectsConfiguration('tether.enabled') || e.affectsConfiguration('tether.queueDir')) {
       void updateStagingContext()
     }
   })
 
-  const setupAntigravity = vscode.commands.registerCommand('devtrace.setupAntigravity', async () => {
+  const setupAntigravity = vscode.commands.registerCommand('tether.setupAntigravity', async () => {
     const folders = vscode.workspace.workspaceFolders
     if (!folders || folders.length === 0) {
-      void vscode.window.showErrorMessage('DevTrace: please open a workspace folder first.')
+      void vscode.window.showErrorMessage('Tether: please open a workspace folder first.')
       return
     }
     const folder = folders[0] as vscode.WorkspaceFolder
     const agentsDir = vscode.Uri.joinPath(folder.uri, '.agents')
     const rulesDir = vscode.Uri.joinPath(agentsDir, 'rules')
-    const hookSource = vscode.Uri.joinPath(context.extensionUri, 'assets', 'antigravity-devtrace.mjs')
-    const hookTarget = vscode.Uri.joinPath(agentsDir, 'devtrace-hook.mjs')
+    const hookSource = vscode.Uri.joinPath(context.extensionUri, 'assets', 'antigravity-tether.mjs')
+    const hookTarget = vscode.Uri.joinPath(agentsDir, 'tether-hook.mjs')
     const hooksJsonTarget = vscode.Uri.joinPath(agentsDir, 'hooks.json')
-    const ruleTarget = vscode.Uri.joinPath(rulesDir, 'devtrace.md')
+    const ruleTarget = vscode.Uri.joinPath(rulesDir, 'tether.md')
 
     try {
       await vscode.workspace.fs.createDirectory(rulesDir)
@@ -671,14 +671,14 @@ async function applyDirectly(group: PendingFile): Promise<void> {
       await vscode.workspace.fs.writeFile(hookTarget, hookBytes)
 
       const hooksConfig = {
-        devtrace: {
+        tether: {
           PreToolUse: [
             {
               matcher: 'write_to_file|replace_file_content|multi_replace_file_content',
               hooks: [
                 {
                   type: 'command',
-                  command: 'node devtrace-hook.mjs',
+                  command: 'node tether-hook.mjs',
                   timeout: 15,
                 },
               ],
@@ -691,11 +691,11 @@ async function applyDirectly(group: PendingFile): Promise<void> {
         Buffer.from(JSON.stringify(hooksConfig, null, 2), 'utf8'),
       )
 
-      const ruleContent = `# DevTrace Mode Active
-When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_replace_file_content\`) return a message starting with "DevTrace:", treat this result as EXPECTED SUCCESS.
-- The proposed change has been safely staged into \`.devtrace/pending/\` for the developer to type by hand.
+      const ruleContent = `# Tether Mode Active
+When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_replace_file_content\`) return a message starting with "Tether:", treat this result as EXPECTED SUCCESS.
+- The proposed change has been safely staged into \`.tether/pending/\` for the developer to type by hand.
 - Do NOT retry the edit, do not attempt alternative editing tools, and do not apologize or complain that the file is unchanged.
-- Proceed with subsequent steps or inform the developer that the code is staged for tracing in DevTrace.
+- Proceed with subsequent steps or inform the developer that the code is staged for tracing in Tether.
 `
       await vscode.workspace.fs.writeFile(ruleTarget, Buffer.from(ruleContent, 'utf8'))
 
@@ -703,40 +703,40 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
       await setStaging(true)
 
       void vscode.window.showInformationMessage(
-        'DevTrace: Google Antigravity integration configured! Proposed edits will now be staged for hand-typing.',
+        'Tether: Google Antigravity integration configured! Proposed edits will now be staged for hand-typing.',
       )
     } catch (err) {
-      void vscode.window.showErrorMessage(`DevTrace: setup failed — ${(err as Error).message}`)
+      void vscode.window.showErrorMessage(`Tether: setup failed — ${(err as Error).message}`)
     }
   })
 
-  const installPlugin = vscode.commands.registerCommand('devtrace.installOpencodePlugin', async () => {
+  const installPlugin = vscode.commands.registerCommand('tether.installOpencodePlugin', async () => {
     const source = vscode.Uri.joinPath(context.extensionUri, 'assets', 'opencode-plugin.ts')
     const pluginsDir = vscode.Uri.file(path.join(os.homedir(), '.config', 'opencode', 'plugins'))
     try {
       await vscode.workspace.fs.createDirectory(pluginsDir)
       const bytes = await vscode.workspace.fs.readFile(source)
-      const target = vscode.Uri.joinPath(pluginsDir, 'devtrace.ts')
+      const target = vscode.Uri.joinPath(pluginsDir, 'tether.ts')
       await vscode.workspace.fs.writeFile(target, bytes)
       const open = 'Show folder'
       void vscode.window
         .showInformationMessage(
-          'DevTrace: OpenCode plugin installed. Restart opencode to load it.',
+          'Tether: OpenCode plugin installed. Restart opencode to load it.',
           open,
         )
         .then((pick) => {
           if (pick === open) void vscode.env.openExternal(pluginsDir)
         })
     } catch (err) {
-      void vscode.window.showErrorMessage(`DevTrace: could not install plugin — ${(err as Error).message}`)
+      void vscode.window.showErrorMessage(`Tether: could not install plugin — ${(err as Error).message}`)
     }
   })
 
-  const openSidebar = vscode.commands.registerCommand('devtrace.openSidebar', async () => {
+  const openSidebar = vscode.commands.registerCommand('tether.openSidebar', async () => {
     try {
-      await vscode.commands.executeCommand('workbench.view.extension.devtrace')
+      await vscode.commands.executeCommand('workbench.view.extension.tether')
     } catch {
-      await vscode.commands.executeCommand('devtrace.pending.focus')
+      await vscode.commands.executeCommand('tether.pending.focus')
     }
   })
 
@@ -783,10 +783,10 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
 
     // Special keys. Bound only while a session runs so the editor never inserts
     // anything for them — the document must stay immutable.
-    vscode.commands.registerCommand('devtrace.enter', () => TraceSession.active?.enter()),
-    vscode.commands.registerCommand('devtrace.tab', () => TraceSession.active?.tab()),
-    vscode.commands.registerCommand('devtrace.backspace', () => TraceSession.active?.backspace()),
-    vscode.commands.registerCommand('devtrace.skipLine', () => TraceSession.active?.skipLine()),
+    vscode.commands.registerCommand('tether.enter', () => TraceSession.active?.enter()),
+    vscode.commands.registerCommand('tether.tab', () => TraceSession.active?.tab()),
+    vscode.commands.registerCommand('tether.backspace', () => TraceSession.active?.backspace()),
+    vscode.commands.registerCommand('tether.skipLine', () => TraceSession.active?.skipLine()),
   )
 }
 

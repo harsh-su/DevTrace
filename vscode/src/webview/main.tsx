@@ -19,7 +19,7 @@ import {
   type Metrics,
   type Offender,
   type Trace,
-} from '@devtrace/core'
+} from '@tether/core'
 import {
   FileTraceView,
   Results,
@@ -32,7 +32,7 @@ import {
   useMultiTraceInput,
   useTheme,
   type FeedbackKind,
-} from '@devtrace/ui'
+} from '@tether/ui'
 import '../../../ui/src/styles.css'
 
 interface VsCodeApi {

@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "devtrace: build extension",
+      "label": "tether: build extension",
       "type": "shell",
       "command": "npm run build",
       "options": {

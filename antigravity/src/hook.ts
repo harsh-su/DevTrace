@@ -133,10 +133,10 @@ export function resolveProjectRoot(targetFile: string, inputRoot?: string): stri
     return inputRoot
   }
 
-  // 1. Walk up from targetFile to find a directory containing .devtrace or .agents
+  // 1. Walk up from targetFile to find a directory containing .tether or .agents
   let dir = isAbsolute(targetFile) ? dirname(targetFile) : resolve(process.cwd(), dirname(targetFile))
   while (dir) {
-    if (existsSync(join(dir, '.devtrace')) || existsSync(join(dir, '.agents'))) {
+    if (existsSync(join(dir, '.tether')) || existsSync(join(dir, '.agents'))) {
       return dir
     }
     const parent = dirname(dir)
@@ -148,7 +148,7 @@ export function resolveProjectRoot(targetFile: string, inputRoot?: string): stri
   const cwd = process.cwd()
   if (cwd.endsWith('.agents') || existsSync(join(cwd, 'hooks.json'))) {
     const parent = dirname(cwd)
-    if (existsSync(join(parent, '.agents')) || existsSync(join(parent, '.devtrace'))) {
+    if (existsSync(join(parent, '.agents')) || existsSync(join(parent, '.tether'))) {
       return parent
     }
   }
@@ -183,10 +183,10 @@ export async function handlePreToolUse(
 
   const root = resolveProjectRoot(rawTargetFile, explicitRoot)
 
-  const devDir = join(root, '.devtrace')
+  const devDir = join(root, '.tether')
   const pendingDir = join(devDir, 'pending')
 
-  const isEnabled = process.env.DEVTRACE_STAGE === '1' || existsSync(devDir)
+  const isEnabled = process.env.TETHER_STAGE === '1' || existsSync(devDir)
   if (!isEnabled) {
     return { decision: 'allow' }
   }
@@ -231,7 +231,7 @@ export async function handlePreToolUse(
   return {
     decision: 'deny',
     reason:
-      `DevTrace: ${tool} staged successfully for the developer to type by hand. ` +
+      `Tether: ${tool} staged successfully for the developer to type by hand. ` +
       `The file is intentionally left unchanged on disk until typed. ` +
       `This is the expected behavior, NOT a failure. Do not retry this edit, ` +
       `do not call writing tools again for this file, and continue with your next task.`,

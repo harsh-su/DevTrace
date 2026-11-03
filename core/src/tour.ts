@@ -58,10 +58,10 @@ export interface TourProgress {
 const TOUR_FILE = 'tour.json'
 const PROGRESS_FILE = 'tour-progress.json'
 
-/** Workspace-relative paths DevTrace's own bookkeeping lives at. */
+/** Workspace-relative paths Tether's own bookkeeping lives at. */
 export const tourPaths = {
-  tour: (rel = '.devtrace') => `${rel}/${TOUR_FILE}`,
-  progress: (rel = '.devtrace') => `${rel}/${PROGRESS_FILE}`,
+  tour: (rel = '.tether') => `${rel}/${TOUR_FILE}`,
+  progress: (rel = '.tether') => `${rel}/${PROGRESS_FILE}`,
 }
 
 export function emptyProgress(): TourProgress {

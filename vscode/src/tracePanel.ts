@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { randomBytes } from 'node:crypto'
-import type { SourceLanguage } from '@devtrace/core'
+import type { SourceLanguage } from '@tether/core'
 
 /** One changed hunk of the file, located in the proposed `after` text. */
 export interface TraceRegionInit {
@@ -33,11 +33,11 @@ interface TraceMetrics {
 }
 
 /**
- * The dedicated DevTrace surface for AI changes.
+ * The dedicated Tether surface for AI changes.
  *
  * Instead of ghost-typing over the real editor buffer, the proposed hunk is
  * rendered in a webview beside the editor. The developer types it there and the
- * same `@devtrace/core` engine scores it. On **Save** the host writes exactly
+ * same `@tether/core` engine scores it. On **Save** the host writes exactly
  * what was typed back to the file; on **Discard** (or Esc, or closing the
  * panel) nothing is written.
  *
@@ -56,8 +56,8 @@ export class TracePanel {
 
   private constructor(private readonly extensionUri: vscode.Uri) {
     this.panel = vscode.window.createWebviewPanel(
-      'devtrace.trace',
-      'DevTrace',
+      'tether.trace',
+      'Tether',
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -80,7 +80,7 @@ export class TracePanel {
   ): Promise<TracePanelResult> {
     const instance = TracePanel.current ?? new TracePanel(extensionUri)
     TracePanel.current = instance
-    instance.panel.title = `DevTrace · ${label}`
+    instance.panel.title = `Tether · ${label}`
     instance.panel.reveal(vscode.ViewColumn.Beside, false)
     return instance.begin(after, label, regions, opts)
   }

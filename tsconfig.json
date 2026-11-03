@@ -6,8 +6,8 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@devtrace/core": ["./core/src/index.ts"],
-      "@devtrace/ui": ["./ui/src/index.ts"]
+      "@tether/core": ["./core/src/index.ts"],
+      "@tether/ui": ["./ui/src/index.ts"]
     }
   },
   "include": ["server", "web", "core/src", "ui/src", "vite.config.ts"]

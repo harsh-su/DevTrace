@@ -13,12 +13,12 @@ import {
   playComplete,
   setMuted,
   type FeedbackKind,
-} from '@devtrace/ui'
-import { createTrace, finalizeAll, metrics, topOffenders, type Metrics, type Trace } from '@devtrace/core'
+} from '@tether/ui'
+import { createTrace, finalizeAll, metrics, topOffenders, type Metrics, type Trace } from '@tether/core'
 
 type Screen = 'pick' | 'browse' | 'trace' | 'done'
 
-const RECENTS_KEY = 'devtrace.recents'
+const RECENTS_KEY = 'tether.recents'
 
 function loadRecents(): string[] {
   try {

@@ -1,5 +1,5 @@
 {
-  "name": "@devtrace/core",
+  "name": "@tether/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",

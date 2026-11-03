@@ -1,6 +1,6 @@
 import { memo } from 'react'
-import { buildRuns, stateClass, tokenizeLine } from '@devtrace/core'
-import type { CharState } from '@devtrace/core'
+import { buildRuns, stateClass, tokenizeLine } from '@tether/core'
+import type { CharState } from '@tether/core'
 
 export interface LineProps {
   text: string

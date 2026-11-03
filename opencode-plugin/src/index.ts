@@ -1,8 +1,8 @@
 /**
- * opencode-devtrace
+ * opencode-tether
  *
  * Blocks OpenCode's writing tools (`edit`, `write`, `multiedit`) and stages each
- * proposed change under `<worktree>/.devtrace/pending/` instead. The DevTrace
+ * proposed change under `<worktree>/.tether/pending/` instead. The Tether
  * VS Code extension watches that directory, opens the file, and lets the
  * developer *type the change by hand* over a ghost overlay. Nothing is written
  * until the developer has typed it.
@@ -11,8 +11,8 @@
  * of the newest staged text so dependent edits are not lost, but the queue and
  * the developer-facing trace remain one-to-one with the AI's edits.
  *
- * Opt-in: staging activates when `DEVTRACE_STAGE=1` is set, or when a
- * `.devtrace/` directory exists in the worktree (the extension creates it).
+ * Opt-in: staging activates when `TETHER_STAGE=1` is set, or when a
+ * `.tether/` directory exists in the worktree (the extension creates it).
  */
 
 import { existsSync } from 'node:fs'
@@ -71,12 +71,12 @@ function applyEdits(before: string, args: Record<string, unknown>): string {
   return applyOne(before, args)
 }
 
-export const DevTracePlugin = async ({ directory, worktree, client }: PluginContext) => {
+export const TetherPlugin = async ({ directory, worktree, client }: PluginContext) => {
   const root = worktree && worktree.length > 0 ? worktree : directory
-  const devDir = join(root, '.devtrace')
+  const devDir = join(root, '.tether')
   const pendingDir = join(devDir, 'pending')
 
-  const enabled = (): boolean => process.env.DEVTRACE_STAGE === '1' || existsSync(devDir)
+  const enabled = (): boolean => process.env.TETHER_STAGE === '1' || existsSync(devDir)
 
   const readSafe = async (path: string): Promise<string> => {
     try {
@@ -120,7 +120,7 @@ export const DevTracePlugin = async ({ directory, worktree, client }: PluginCont
 
     const abs = isAbsolute(filePath) ? filePath : resolve(root, filePath)
 
-    // DevTrace's own bookkeeping (tour.json, tour-progress.json, ...) lives in
+    // Tether's own bookkeeping (tour.json, tour-progress.json, ...) lives in
     // the queue directory. The agent must be able to write it directly, so
     // writes there pass through untouched instead of being staged.
     if (abs === devDir || abs.startsWith(devDir + sep)) return
@@ -149,7 +149,7 @@ export const DevTracePlugin = async ({ directory, worktree, client }: PluginCont
 
     await client?.app?.log?.({
       body: {
-        service: 'opencode-devtrace',
+        service: 'opencode-tether',
         level: 'info',
         message: `staged ${tool} for ${abs}`,
       },
@@ -160,7 +160,7 @@ export const DevTracePlugin = async ({ directory, worktree, client }: PluginCont
     // system rule and a tool-description note below telling the model that this
     // result is expected and must not be retried.
     throw new Error(
-      `DevTrace: ${tool} staged successfully for the developer to type by hand. ` +
+      `Tether: ${tool} staged successfully for the developer to type by hand. ` +
         `The file is intentionally left unchanged for now — the developer will apply ` +
         `this exact change. This is the expected behavior, NOT a failure. Do not retry ` +
         `this edit, do not call ${tool} again for this file, and continue with other work.`,
@@ -179,18 +179,18 @@ export const DevTracePlugin = async ({ directory, worktree, client }: PluginCont
         'this codebase (e.g. "teach me this project", "tour me through the code"), build a ' +
         'learning path instead of summarizing in chat. First explore enough of the repo to ' +
         'order it: entry point first, then config/build, then the heart of the domain logic, ' +
-        'then the surrounding surfaces. Then write .devtrace/tour.json (this exact shape: ' +
+        'then the surrounding surfaces. Then write .tether/tour.json (this exact shape: ' +
         'title, goal, steps[]) where each step is ' +
         '{ id: "step-01", title, file (workspace-relative), start (1-based line), lines, why ' +
         '(why this step comes next), concept (the single idea it teaches), explanation ' +
         '(plain-English walk-through of that code — say what it does, what its inputs and ' +
         'outputs are, and which other parts call it) }. Keep each step\'s range modest: ' +
         '6-30 lines the developer will type. 6-10 ordered steps beats one giant file. ' +
-        'Writing tour.json and tour-progress.json inside the DevTrace directory is allowed ' +
-        'directly — those files are NOT staged. Files show up in order in the DevTrace ' +
+        'Writing tour.json and tour-progress.json inside the Tether directory is allowed ' +
+        'directly — those files are NOT staged. Files show up in order in the Tether ' +
         'VS Code sidebar\'s "Learning path" list; the developer opens each, reads your ' +
         'explanation, and types the code.',
-      'Adaptation: BEFORE writing or updating tour.json, read .devtrace/tour-progress.json ' +
+      'Adaptation: BEFORE writing or updating tour.json, read .tether/tour-progress.json ' +
         '(create-tolerant; the extension maintains it). Rows look like ' +
         '"step-id: done=true, attempts=2, last 41 wpm / 96% — title". A row marked ' +
         '"not completed — retrace wanted" means the developer struggled: remix the remaining ' +
@@ -211,9 +211,9 @@ export const DevTracePlugin = async ({ directory, worktree, client }: PluginCont
     ) => {
       if (!enabled()) return
       output.system.push(
-        'DevTrace mode is active. File writes (edit/write/multiedit) are intercepted: ' +
+        'Tether mode is active. File writes (edit/write/multiedit) are intercepted: ' +
           'each is staged for the developer to type by hand and the tool returns a message ' +
-          'starting with "DevTrace:". Treat that result as SUCCESS. Do not retry the edit, ' +
+          'starting with "Tether:". Treat that result as SUCCESS. Do not retry the edit, ' +
           'do not re-read the file expecting the change to be present yet, and do not ' +
           'apologize or warn about the file being unchanged. Continue with the task.',
         ...tourRules(),
@@ -228,11 +228,11 @@ export const DevTracePlugin = async ({ directory, worktree, client }: PluginCont
       if (!enabled()) return
       if (devTraceTools.has(input.toolID)) {
         output.description +=
-          ' Note: DevTrace may stage this change for hand-typing and return a "DevTrace:" ' +
+          ' Note: Tether may stage this change for hand-typing and return a "Tether:" ' +
           'message. That is expected success — do not retry.'
       }
     },
   }
 }
 
-export default DevTracePlugin
+export default TetherPlugin

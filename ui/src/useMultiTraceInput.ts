@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { advanceSkipped, autoAdvanceLeadingIndent, autoAdvanceNonTypable, autoFillPair, autocompleteLine, backspace, isComplete, press, recordError, skipLine, type Trace } from '@devtrace/core'
+import { advanceSkipped, autoAdvanceLeadingIndent, autoAdvanceNonTypable, autoFillPair, autocompleteLine, backspace, isComplete, press, recordError, skipLine, type Trace } from '@tether/core'
 import type { FeedbackKind } from './useTraceInput.js'
 
 export interface MultiTraceInputHandlers {

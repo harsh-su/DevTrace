@@ -46,7 +46,7 @@ const steps = [
 console.log('\nvalidateTour')
 
 {
-  const tour = validateTour({ title: 'Learn DevTrace', goal: 'understand the engine', steps })
+  const tour = validateTour({ title: 'Learn Tether', goal: 'understand the engine', steps })
   ok('valid tour passes', tour !== undefined)
   ok(
     'steps survive validation',
@@ -152,8 +152,8 @@ console.log('\nlineSlice')
 console.log('\ntourPaths')
 
 {
-  ok('tour path', tourPaths.tour() === '.devtrace/tour.json')
-  ok('progress path', tourPaths.progress() === '.devtrace/tour-progress.json')
+  ok('tour path', tourPaths.tour() === '.tether/tour.json')
+  ok('progress path', tourPaths.progress() === '.tether/tour-progress.json')
   ok('custom root', tourPaths.tour('my-trace') === 'my-trace/tour.json')
 }
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import type { Metrics, Offender } from '@devtrace/core'
-import { showChar } from '@devtrace/core'
+import type { Metrics, Offender } from '@tether/core'
+import { showChar } from '@tether/core'
 
 interface Props {
   /** The most-missed keys for the session, already tallied by the host. */
