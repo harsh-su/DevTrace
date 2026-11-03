@@ -2,7 +2,7 @@
   "name": "aitrace",
   "displayName": "AItrace",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "publisher": "byteWorxs",
   "license": "MIT",
