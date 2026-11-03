@@ -7,8 +7,8 @@ import { readFileSync, existsSync } from 'node:fs'
 // the filesystem through us.
 function sessionToken(): string {
   try {
-    return existsSync('.tether-session')
-      ? readFileSync('.tether-session', 'utf8').trim()
+    return existsSync('.aitrace-session')
+      ? readFileSync('.aitrace-session', 'utf8').trim()
       : ''
   } catch {
     return ''
@@ -28,7 +28,7 @@ export default defineConfig({
         changeOrigin: false,
         configure: (proxy) => {
           proxy.on('proxyReq', (req) => {
-            if (token) req.setHeader('x-tether-token', token)
+            if (token) req.setHeader('x-aitrace-token', token)
           })
         },
       },

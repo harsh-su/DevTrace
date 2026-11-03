@@ -1,6 +1,6 @@
 {
-  "name": "tether-code",
-  "displayName": "Tether",
+  "name": "aitrace",
+  "displayName": "AItrace",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
   "version": "1.0.0",
   "private": true,
@@ -16,383 +16,383 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "onStartupFinished",
-    "onView:tether.pending",
-    "onView:tether.tour",
-    "onView:tether.code"
+    "onView:aitrace.pending",
+    "onView:aitrace.tour",
+    "onView:aitrace.code"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "tether",
-          "title": "Tether",
-          "icon": "resources/tether.svg"
+          "id": "aitrace",
+          "title": "AItrace",
+          "icon": "resources/aitrace.svg"
         }
       ]
     },
     "views": {
-      "tether": [
+      "aitrace": [
         {
-          "id": "tether.tour",
+          "id": "aitrace.tour",
           "name": "Learning path",
-          "icon": "resources/tether.svg",
-          "contextualTitle": "Tether"
+          "icon": "resources/aitrace.svg",
+          "contextualTitle": "AItrace"
         },
         {
-          "id": "tether.pending",
+          "id": "aitrace.pending",
           "name": "Pending changes",
-          "icon": "resources/tether.svg",
-          "contextualTitle": "Tether"
+          "icon": "resources/aitrace.svg",
+          "contextualTitle": "AItrace"
         },
         {
-          "id": "tether.code",
+          "id": "aitrace.code",
           "name": "Code flow",
-          "icon": "resources/tether.svg",
-          "contextualTitle": "Tether"
+          "icon": "resources/aitrace.svg",
+          "contextualTitle": "AItrace"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "tether.tour",
-        "contents": "No learning path yet. Ask OpenCode to “tour me through this project” and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:tether.tour.next)"
+        "view": "aitrace.tour",
+        "contents": "No learning path yet. Ask OpenCode to “tour me through this project” and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:aitrace.tour.next)"
       },
       {
-        "view": "tether.pending",
-        "when": "!tether.stagingEnabled",
-        "contents": "Tether is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on Tether](command:tether.enableStaging)\n[Setup Google Antigravity Integration](command:tether.setupAntigravity)"
+        "view": "aitrace.pending",
+        "when": "!aitrace.stagingEnabled",
+        "contents": "AItrace is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on AItrace](command:aitrace.enableStaging)\n[Setup Google Antigravity Integration](command:aitrace.setupAntigravity)"
       },
       {
-        "view": "tether.pending",
-        "when": "tether.stagingEnabled",
-        "contents": "No pending changes. When Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:tether.traceSelection)\n[Setup Antigravity Integration](command:tether.setupAntigravity)"
+        "view": "aitrace.pending",
+        "when": "aitrace.stagingEnabled",
+        "contents": "No pending changes. When Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:aitrace.traceSelection)\n[Setup Antigravity Integration](command:aitrace.setupAntigravity)"
       }
     ],
     "commands": [
       {
-        "command": "tether.openSidebar",
-        "title": "Tether: Open Sidebar (Pending Changes)"
+        "command": "aitrace.openSidebar",
+        "title": "AItrace: Open Sidebar (Pending Changes)"
       },
       {
-        "command": "tether.setupAntigravity",
-        "title": "Tether: Setup Google Antigravity Integration"
+        "command": "aitrace.setupAntigravity",
+        "title": "AItrace: Setup Google Antigravity Integration"
       },
       {
-        "command": "tether.traceSelection",
-        "title": "Tether: Trace Selection"
+        "command": "aitrace.traceSelection",
+        "title": "AItrace: Trace Selection"
       },
       {
-        "command": "tether.flow.open",
-        "title": "Tether: Show Code Flow"
+        "command": "aitrace.flow.open",
+        "title": "AItrace: Show Code Flow"
       },
       {
-        "command": "tether.flow.refresh",
-        "title": "Tether: Refresh Code Flow",
-        "category": "Tether",
+        "command": "aitrace.flow.refresh",
+        "title": "AItrace: Refresh Code Flow",
+        "category": "AItrace",
         "icon": "$(refresh)"
       },
       {
-        "command": "tether.traceFile",
-        "title": "Tether: Trace File Range"
+        "command": "aitrace.traceFile",
+        "title": "AItrace: Trace File Range"
       },
       {
-        "command": "tether.endSession",
-        "title": "Tether: End Trace Session"
+        "command": "aitrace.endSession",
+        "title": "AItrace: End Trace Session"
       },
       {
-        "command": "tether.showResults",
-        "title": "Tether: Show Last Results"
+        "command": "aitrace.showResults",
+        "title": "AItrace: Show Last Results"
       },
       {
-        "command": "tether.installOpencodePlugin",
-        "title": "Tether: Install OpenCode Plugin"
+        "command": "aitrace.installOpencodePlugin",
+        "title": "AItrace: Install OpenCode Plugin"
       },
       {
-        "command": "tether.tour.trace",
+        "command": "aitrace.tour.trace",
         "title": "Trace Step",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(keyboard)"
       },
       {
-        "command": "tether.tour.next",
-        "title": "Tether: Trace Next Learning Step",
-        "category": "Tether",
+        "command": "aitrace.tour.next",
+        "title": "AItrace: Trace Next Learning Step",
+        "category": "AItrace",
         "icon": "$(play)"
       },
       {
-        "command": "tether.tour.reveal",
+        "command": "aitrace.tour.reveal",
         "title": "Reveal Step File",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "tether.tour.reset",
+        "command": "aitrace.tour.reset",
         "title": "Clear Learning Path Progress",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(clear-all)"
       },
       {
-        "command": "tether.tour.refresh",
+        "command": "aitrace.tour.refresh",
         "title": "Refresh Learning Path",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(refresh)"
       },
       {
-        "command": "tether.pending.accept",
+        "command": "aitrace.pending.accept",
         "title": "Accept Change (Write to Disk)",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(check)"
       },
       {
-        "command": "tether.pending.acceptAll",
+        "command": "aitrace.pending.acceptAll",
         "title": "Accept All Pending Changes",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(check-all)"
       },
       {
-        "command": "tether.pending.trace",
+        "command": "aitrace.pending.trace",
         "title": "Trace Change",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(keyboard)"
       },
       {
-        "command": "tether.pending.discard",
+        "command": "aitrace.pending.discard",
         "title": "Discard Change",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(trash)"
       },
       {
-        "command": "tether.pending.reveal",
+        "command": "aitrace.pending.reveal",
         "title": "Reveal File",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "tether.pending.traceAll",
+        "command": "aitrace.pending.traceAll",
         "title": "Trace All Pending",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(play)"
       },
       {
-        "command": "tether.pending.clear",
+        "command": "aitrace.pending.clear",
         "title": "Discard All Pending",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(clear-all)"
       },
       {
-        "command": "tether.pending.refresh",
+        "command": "aitrace.pending.refresh",
         "title": "Refresh Pending Changes",
-        "category": "Tether",
+        "category": "AItrace",
         "icon": "$(refresh)"
       },
       {
-        "command": "tether.enableStaging",
-        "title": "Turn On Tether",
-        "category": "Tether",
+        "command": "aitrace.enableStaging",
+        "title": "Turn On AItrace",
+        "category": "AItrace",
         "icon": "$(circle-outline)"
       },
       {
-        "command": "tether.disableStaging",
-        "title": "Turn Off Tether",
-        "category": "Tether",
+        "command": "aitrace.disableStaging",
+        "title": "Turn Off AItrace",
+        "category": "AItrace",
         "icon": "$(circle-filled)"
       },
       {
-        "command": "tether.enter",
-        "title": "Tether: Newline"
+        "command": "aitrace.enter",
+        "title": "AItrace: Newline"
       },
       {
-        "command": "tether.tab",
-        "title": "Tether: Tab"
+        "command": "aitrace.tab",
+        "title": "AItrace: Tab"
       },
       {
-        "command": "tether.backspace",
-        "title": "Tether: Backspace"
+        "command": "aitrace.backspace",
+        "title": "AItrace: Backspace"
       },
       {
-        "command": "tether.skipLine",
-        "title": "Tether: Skip Line"
+        "command": "aitrace.skipLine",
+        "title": "AItrace: Skip Line"
       }
     ],
     "keybindings": [
       {
-        "command": "tether.endSession",
+        "command": "aitrace.endSession",
         "key": "escape",
-        "when": "tether.tracing"
+        "when": "aitrace.tracing"
       },
       {
-        "command": "tether.enter",
+        "command": "aitrace.enter",
         "key": "enter",
-        "when": "tether.tracing"
+        "when": "aitrace.tracing"
       },
       {
-        "command": "tether.tab",
+        "command": "aitrace.tab",
         "key": "tab",
-        "when": "tether.tracing"
+        "when": "aitrace.tracing"
       },
       {
-        "command": "tether.backspace",
+        "command": "aitrace.backspace",
         "key": "backspace",
-        "when": "tether.tracing"
+        "when": "aitrace.tracing"
       },
       {
-        "command": "tether.skipLine",
+        "command": "aitrace.skipLine",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
-        "when": "tether.tracing"
+        "when": "aitrace.tracing"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "tether.tour.next",
-          "when": "view == tether.tour && tether.tourHasTour",
+          "command": "aitrace.tour.next",
+          "when": "view == aitrace.tour && aitrace.tourHasTour",
           "group": "navigation@0"
         },
         {
-          "command": "tether.tour.refresh",
-          "when": "view == tether.tour",
+          "command": "aitrace.tour.refresh",
+          "when": "view == aitrace.tour",
           "group": "navigation@1"
         },
         {
-          "command": "tether.tour.reset",
-          "when": "view == tether.tour && tether.tourHasTour",
+          "command": "aitrace.tour.reset",
+          "when": "view == aitrace.tour && aitrace.tourHasTour",
           "group": "navigation@2"
         },
         {
-          "command": "tether.enableStaging",
-          "when": "view == tether.pending && !tether.stagingEnabled",
+          "command": "aitrace.enableStaging",
+          "when": "view == aitrace.pending && !aitrace.stagingEnabled",
           "group": "navigation@0"
         },
         {
-          "command": "tether.disableStaging",
-          "when": "view == tether.pending && tether.stagingEnabled",
+          "command": "aitrace.disableStaging",
+          "when": "view == aitrace.pending && aitrace.stagingEnabled",
           "group": "navigation@0"
         },
         {
-          "command": "tether.pending.acceptAll",
-          "when": "view == tether.pending",
+          "command": "aitrace.pending.acceptAll",
+          "when": "view == aitrace.pending",
           "group": "navigation@1"
         },
         {
-          "command": "tether.pending.traceAll",
-          "when": "view == tether.pending",
+          "command": "aitrace.pending.traceAll",
+          "when": "view == aitrace.pending",
           "group": "navigation@2"
         },
         {
-          "command": "tether.pending.refresh",
-          "when": "view == tether.pending",
+          "command": "aitrace.pending.refresh",
+          "when": "view == aitrace.pending",
           "group": "navigation@3"
         },
         {
-          "command": "tether.pending.clear",
-          "when": "view == tether.pending",
+          "command": "aitrace.pending.clear",
+          "when": "view == aitrace.pending",
           "group": "navigation@4"
         }
       ],
       "view/item/context": [
         {
-          "command": "tether.tour.reveal",
-          "when": "view == tether.tour && viewItem == tether.tour.done",
+          "command": "aitrace.tour.reveal",
+          "when": "view == aitrace.tour && viewItem == aitrace.tour.done",
           "group": "1_open"
         },
         {
-          "command": "tether.pending.accept",
-          "when": "view == tether.pending && viewItem == tether.pending",
+          "command": "aitrace.pending.accept",
+          "when": "view == aitrace.pending && viewItem == aitrace.pending",
           "group": "inline@0"
         },
         {
-          "command": "tether.pending.trace",
-          "when": "view == tether.pending && viewItem == tether.pending",
+          "command": "aitrace.pending.trace",
+          "when": "view == aitrace.pending && viewItem == aitrace.pending",
           "group": "inline@1"
         },
         {
-          "command": "tether.pending.discard",
-          "when": "view == tether.pending && viewItem == tether.pending",
+          "command": "aitrace.pending.discard",
+          "when": "view == aitrace.pending && viewItem == aitrace.pending",
           "group": "inline@2"
         },
         {
-          "command": "tether.pending.reveal",
-          "when": "view == tether.pending && viewItem == tether.pending",
+          "command": "aitrace.pending.reveal",
+          "when": "view == aitrace.pending && viewItem == aitrace.pending",
           "group": "1_open"
         }
       ],
       "commandPalette": [
         {
-          "command": "tether.tour.trace",
+          "command": "aitrace.tour.trace",
           "when": "false"
         },
         {
-          "command": "tether.tour.reveal",
+          "command": "aitrace.tour.reveal",
           "when": "false"
         },
         {
-          "command": "tether.pending.trace",
+          "command": "aitrace.pending.trace",
           "when": "false"
         },
         {
-          "command": "tether.pending.discard",
+          "command": "aitrace.pending.discard",
           "when": "false"
         },
         {
-          "command": "tether.pending.reveal",
+          "command": "aitrace.pending.reveal",
           "when": "false"
         },
         {
-          "command": "tether.enter",
+          "command": "aitrace.enter",
           "when": "false"
         },
         {
-          "command": "tether.tab",
+          "command": "aitrace.tab",
           "when": "false"
         },
         {
-          "command": "tether.backspace",
+          "command": "aitrace.backspace",
           "when": "false"
         },
         {
-          "command": "tether.skipLine",
+          "command": "aitrace.skipLine",
           "when": "false"
         }
       ]
     },
     "configuration": {
-      "title": "Tether",
+      "title": "AItrace",
       "properties": {
-        "tether.advanceOnError": {
+        "aitrace.advanceOnError": {
           "type": "boolean",
           "default": true,
-          "description": "Advance the cursor even on a wrong keystroke (Tether's non-blocking model). When false, the wrong keystroke is rejected and the ghost stays put."
+          "description": "Advance the cursor even on a wrong keystroke (AItrace's non-blocking model). When false, the wrong keystroke is rejected and the ghost stays put."
         },
-        "tether.showGhost": {
+        "aitrace.showGhost": {
           "type": "boolean",
           "default": true,
           "description": "Render the remaining target text as dimmed ghost text in the editor."
         },
-        "tether.playSound": {
+        "aitrace.playSound": {
           "type": "boolean",
           "default": false,
           "description": "Play subtle audio feedback on keystrokes (in addition to any editor keystroke sound)."
         },
-        "tether.queueDir": {
+        "aitrace.queueDir": {
           "type": "string",
-          "default": ".tether",
+          "default": ".aitrace",
           "description": "Workspace-relative directory the OpenCode plugin writes staged AI changes to."
         },
-        "tether.debug": {
+        "aitrace.debug": {
           "type": "boolean",
           "default": false,
-          "description": "Log trace input handling to the 'Tether' output channel. Useful if typing is not being scored."
+          "description": "Log trace input handling to the 'AItrace' output channel. Useful if typing is not being scored."
         },
-        "tether.autoTrace": {
+        "aitrace.autoTrace": {
           "type": "boolean",
           "default": false,
-          "description": "Open the trace panel for each pending file automatically. When off, files wait in the Tether sidebar until you start them."
+          "description": "Open the trace panel for each pending file automatically. When off, files wait in the AItrace sidebar until you start them."
         },
-        "tether.enabled": {
+        "aitrace.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether Tether staging is on. The Tether sidebar toggle also controls this. Staging is active when the queue directory (.tether) exists."
+          "description": "Whether AItrace staging is on. The AItrace sidebar toggle also controls this. Staging is active when the queue directory (.aitrace) exists."
         }
       }
     }
@@ -404,8 +404,8 @@
     "package": "npm run build && npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {
-    "@tether/core": "*",
-    "@tether/ui": "*",
+    "@aitrace/core": "*",
+    "@aitrace/ui": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

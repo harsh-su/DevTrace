@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import TetherPlugin from '../src/index.js'
+import AItracePlugin from '../src/index.js'
 
 let failures = 0
 function ok(label: string, cond: boolean, detail = '') {
@@ -25,10 +25,10 @@ interface Staged {
 
 /** A fresh worktree with staging on, plus a helper to run the plugin's stage hook. */
 async function setup(file: string, contents: string) {
-  const root = await mkdtemp(join(tmpdir(), 'tether-plugin-'))
-  await mkdir(join(root, '.tether', 'pending'), { recursive: true })
+  const root = await mkdtemp(join(tmpdir(), 'aitrace-plugin-'))
+  await mkdir(join(root, '.aitrace', 'pending'), { recursive: true })
   await writeFile(join(root, file), contents, 'utf8')
-  const plugin = await TetherPlugin({ directory: root, worktree: root })
+  const plugin = await AItracePlugin({ directory: root, worktree: root })
   const stage = plugin['tool.execute.before'] as (
     input: { tool: string; sessionID: string; callID: string },
     output: { args: Record<string, unknown> },
@@ -41,7 +41,7 @@ async function setup(file: string, contents: string) {
     }
   }
   const pending = async (): Promise<Staged[]> => {
-    const dir = join(root, '.tether', 'pending')
+    const dir = join(root, '.aitrace', 'pending')
     const names = (await readdir(dir)).filter((n) => n.endsWith('.json')).sort()
     return Promise.all(
       names.map(async (n) => JSON.parse(await readFile(join(dir, n), 'utf8')) as Staged),
@@ -112,18 +112,18 @@ console.log('\nno-op edit stages nothing')
   await t.run('edit', { filePath: 'f.ts', oldString: 'same', newString: 'same' })
   const records = await t.pending()
   ok('no record', records.length === 0, `got ${records.length}`)
-  ok('no stray temp file', !existsSync(join(t.root, '.tether', 'pending', 'tmp')))
+  ok('no stray temp file', !existsSync(join(t.root, '.aitrace', 'pending', 'tmp')))
   await t.cleanup()
 }
 
-console.log('\nbookkeeping inside .tether/ passes through unstaged')
+console.log('\nbookkeeping inside .aitrace/ passes through unstaged')
 
 {
   const t = await setup('g.ts', 'g\n')
   const tour = { title: 'Learn', goal: 'understand', steps: [] }
-  await t.run('write', { filePath: '.tether/tour.json', content: JSON.stringify(tour) })
+  await t.run('write', { filePath: '.aitrace/tour.json', content: JSON.stringify(tour) })
   await t.run('edit', {
-    filePath: join(t.root, '.tether', 'tour-progress.json'),
+    filePath: join(t.root, '.aitrace', 'tour-progress.json'),
     oldString: '{}',
     newString: '{"steps":{}}',
   })

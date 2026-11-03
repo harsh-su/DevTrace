@@ -20,7 +20,7 @@ import {
   type Metrics,
   type SpanDiff,
   type Trace,
-} from '@tether/core'
+} from '@aitrace/core'
 
 /**
  * A native trace session.
@@ -82,11 +82,11 @@ function decorationTypes(): {
 
 let channel: vscode.OutputChannel | undefined
 
-/** Opt-in diagnostics (`tether.debug`). Never throws. */
+/** Opt-in diagnostics (`aitrace.debug`). Never throws. */
 function log(message: string): void {
   try {
-    if (!vscode.workspace.getConfiguration('tether').get<boolean>('debug', false)) return
-    channel ??= vscode.window.createOutputChannel('Tether')
+    if (!vscode.workspace.getConfiguration('aitrace').get<boolean>('debug', false)) return
+    channel ??= vscode.window.createOutputChannel('AItrace')
     channel.appendLine(`[${new Date().toISOString()}] ${message}`)
   } catch {
     /* logging must never break a session */
@@ -159,7 +159,7 @@ export class TraceSession implements vscode.Disposable {
     )
 
     TraceSession.active = this
-    void vscode.commands.executeCommand('setContext', 'tether.tracing', true)
+    void vscode.commands.executeCommand('setContext', 'aitrace.tracing', true)
     this.moveCaret()
     this.render()
   }
@@ -418,7 +418,7 @@ export class TraceSession implements vscode.Disposable {
     this.editor.setDecorations(types.skip, [])
     for (const d of this.disposables) d.dispose()
     if (TraceSession.active === this) TraceSession.active = undefined
-    void vscode.commands.executeCommand('setContext', 'tether.tracing', false)
+    void vscode.commands.executeCommand('setContext', 'aitrace.tracing', false)
   }
 
   get sessionLabel(): string {

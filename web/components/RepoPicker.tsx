@@ -19,7 +19,7 @@ export default function RepoPicker({ onScan, busy, error, recents }: Props) {
 
   return (
     <div className="panel picker">
-      <h1>Tether</h1>
+      <h1>AItrace</h1>
       <p className="sub">Trace the code you actually write.</p>
 
       <form onSubmit={submit}>

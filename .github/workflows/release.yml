@@ -30,12 +30,12 @@ jobs:
         run: npm ci
 
       - name: Build Antigravity hook
-        run: npm --workspace @tether/antigravity run build
+        run: npm --workspace @aitrace/antigravity run build
 
       - name: Typecheck
         run: |
           npm run typecheck
-          npm --workspace tether-code run typecheck
+          npm --workspace aitrace run typecheck
 
       - name: Test
         run: |
@@ -43,21 +43,21 @@ jobs:
           npm run test:antigravity
 
       - name: Build extension
-        run: npm --workspace tether-code run build
+        run: npm --workspace aitrace run build
 
       - name: Package VSIX
-        run: npm --workspace tether-code run package
+        run: npm --workspace aitrace run package
 
       - name: Resolve VSIX path
         id: vsix
         run: |
           version=$(node -p "require('./vscode/package.json').version")
-          echo "path=vscode/tether-code-${version}.vsix" >> "$GITHUB_OUTPUT"
+          echo "path=vscode/aitrace-${version}.vsix" >> "$GITHUB_OUTPUT"
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v7
         with:
-          name: tether-vsix
+          name: aitrace-vsix
           path: ${{ steps.vsix.outputs.path }}
 
       - name: Publish to VS Code Marketplace

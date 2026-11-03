@@ -6,7 +6,7 @@ import { scan, isDir } from './lib/walk.js'
 
 const PORT = 3001
 const HOST = '127.0.0.1' // never 0.0.0.0 — this process serves arbitrary file reads
-const SESSION_FILE = '.tether-session'
+const SESSION_FILE = '.aitrace-session'
 
 // ---------------------------------------------------------------------------
 // Single-file API. It's one browser tab on one machine; a router would be
@@ -49,7 +49,7 @@ const token = stableToken()
 const app = Fastify({ logger: { level: 'warn' } })
 
 app.addHook('onRequest', async (req, reply) => {
-  if (req.headers['x-tether-token'] !== token) {
+  if (req.headers['x-aitrace-token'] !== token) {
     reply.code(403).send({ error: 'bad or missing session token' })
   }
 })
@@ -123,5 +123,5 @@ app.get('/api/file', async (req, reply) => {
 })
 
 app.listen({ port: PORT, host: HOST }).then(() => {
-  console.log(`[tether] api on http://${HOST}:${PORT}`)
+  console.log(`[aitrace] api on http://${HOST}:${PORT}`)
 })

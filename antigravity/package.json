@@ -1,14 +1,14 @@
 {
-  "name": "@tether/antigravity",
+  "name": "@aitrace/antigravity",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "build": "esbuild src/cli.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/tether-hook.mjs",
+    "build": "esbuild src/cli.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/aitrace-hook.mjs",
     "test": "tsx test/hook.test.ts"
   },
   "dependencies": {
-    "@tether/core": "*"
+    "@aitrace/core": "*"
   }
 }

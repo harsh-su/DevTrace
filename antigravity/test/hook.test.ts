@@ -14,8 +14,8 @@ function ok(label: string, cond: boolean, detail = '') {
 }
 
 async function runTests() {
-  const root = await mkdtemp(join(tmpdir(), 'tether-ag-test-'))
-  const devDir = join(root, '.tether')
+  const root = await mkdtemp(join(tmpdir(), 'aitrace-ag-test-'))
+  const devDir = join(root, '.aitrace')
   const pendingDir = join(devDir, 'pending')
   await mkdir(pendingDir, { recursive: true })
 
@@ -40,7 +40,7 @@ async function runTests() {
 
     const res = await handlePreToolUse(input, root)
     ok('decision is deny', res.decision === 'deny')
-    ok('reason mentions Tether', typeof res.reason === 'string' && res.reason.includes('Tether'))
+    ok('reason mentions AItrace', typeof res.reason === 'string' && res.reason.includes('AItrace'))
 
     const disk = await readFile(testFile, 'utf8')
     ok('disk is unchanged', disk === 'const a = 1\nconst b = 2\nconst c = 3\n')
@@ -119,7 +119,7 @@ async function runTests() {
     ok('run_command is allowed', res.decision === 'allow')
   }
 
-  console.log('\n5. disabled when .tether missing')
+  console.log('\n5. disabled when .aitrace missing')
   {
     await rm(devDir, { recursive: true, force: true })
     const input: PreToolUseInput = {
@@ -130,7 +130,7 @@ async function runTests() {
       workspacePaths: [root],
     }
     const res = await handlePreToolUse(input, root)
-    ok('allowed when .tether is absent', res.decision === 'allow')
+    ok('allowed when .aitrace is absent', res.decision === 'allow')
   }
 
   await rm(root, { recursive: true, force: true })

@@ -38,14 +38,14 @@ export interface PendingFile {
 
 /**
  * The set of AI changes waiting to be hand-traced, backed by the
- * `<workspace>/.tether/pending/*.json` files the OpenCode plugin writes.
+ * `<workspace>/.aitrace/pending/*.json` files the OpenCode plugin writes.
  *
  * Records are kept until they are traced or discarded, so the list survives a
  * window reload — the panel mirrors the queue rather than draining it. An
  * optional `onArrive` callback fires once per new record, for auto-tracing.
  *
  * This store never creates the queue directory: its presence is what turns
- * Tether staging on, so the directory is owned by the enable/disable command.
+ * AItrace staging on, so the directory is owned by the enable/disable command.
  */
 export class PendingStore implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = []
@@ -150,8 +150,8 @@ export class PendingStore implements vscode.Disposable {
   }
 
   private async watch(folder: vscode.WorkspaceFolder): Promise<void> {
-    const cfg = vscode.workspace.getConfiguration('tether', folder.uri)
-    const rel = cfg.get<string>('queueDir', '.tether')
+    const cfg = vscode.workspace.getConfiguration('aitrace', folder.uri)
+    const rel = cfg.get<string>('queueDir', '.aitrace')
     const pendingDir = join(folder.uri.fsPath, rel, 'pending')
 
     const watcher = vscode.workspace.createFileSystemWatcher(
@@ -171,7 +171,7 @@ export class PendingStore implements vscode.Disposable {
     try {
       names = await readdir(dir)
     } catch {
-      return // queue directory absent: Tether staging is off
+      return // queue directory absent: AItrace staging is off
     }
     for (const name of names) {
       if (name.endsWith('.json')) await this.load(vscode.Uri.file(join(dir, name)))

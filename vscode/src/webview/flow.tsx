@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { FlowGraph } from '@tether/core'
+import type { FlowGraph } from '@aitrace/core'
 import '../../../ui/src/styles.css'
 import './flow.css'
 

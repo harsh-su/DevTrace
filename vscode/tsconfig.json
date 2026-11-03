@@ -8,8 +8,8 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@tether/core": ["../core/src/index.ts"],
-      "@tether/ui": ["../ui/src/index.ts"]
+      "@aitrace/core": ["../core/src/index.ts"],
+      "@aitrace/ui": ["../ui/src/index.ts"]
     }
   },
   "include": ["src"]

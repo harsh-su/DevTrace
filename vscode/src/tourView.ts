@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { TourStep } from '@tether/core'
+import type { TourStep } from '@aitrace/core'
 import type { TourStore } from './tour.js'
 
 /** One stop on the learning path, shown with trace/reveal actions. */
@@ -12,7 +12,7 @@ export class TourItem extends vscode.TreeItem {
   ) {
     super(`${index + 1}. ${step.title}`, vscode.TreeItemCollapsibleState.None)
     this.id = step.id
-    this.contextValue = done ? 'tether.tour.done' : 'tether.tour.step'
+    this.contextValue = done ? 'aitrace.tour.done' : 'aitrace.tour.step'
     this.iconPath = new vscode.ThemeIcon(
       done ? 'check' : current ? 'play-circle' : 'circle-outline',
       done ? new vscode.ThemeColor('testing.iconPassed') : undefined,
@@ -31,7 +31,7 @@ export class TourItem extends vscode.TreeItem {
             : 'Not traced yet.'),
     )
     this.command = {
-      command: done ? 'tether.tour.reveal' : 'tether.tour.trace',
+      command: done ? 'aitrace.tour.reveal' : 'aitrace.tour.trace',
       title: done ? 'Reveal file' : 'Trace step',
       arguments: [step.id],
     }

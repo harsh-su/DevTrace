@@ -1,5 +1,5 @@
 {
-  "name": "@tether/ui",
+  "name": "@aitrace/ui",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "./styles.css": "./src/styles.css"
   },
   "dependencies": {
-    "@tether/core": "*",
+    "@aitrace/core": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

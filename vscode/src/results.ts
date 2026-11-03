@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { showChar, topOffenders, type Metrics, type Trace } from '@tether/core'
+import { showChar, topOffenders, type Metrics, type Trace } from '@aitrace/core'
 
 /** Post-session summary, reusing the same numbers the web tracer computes. */
 export class ResultsPanel {
@@ -9,8 +9,8 @@ export class ResultsPanel {
 
   private constructor() {
     this.panel = vscode.window.createWebviewPanel(
-      'tether.results',
-      'Tether Results',
+      'aitrace.results',
+      'AItrace Results',
       vscode.ViewColumn.Beside,
       { enableScripts: false, retainContextWhenHidden: false },
     )
@@ -64,7 +64,7 @@ export class ResultsPanel {
   .chip b { opacity: .85; }
 </style></head>
 <body>
-  <h1>Tether session ${completed ? 'complete' : 'ended'}</h1>
+  <h1>AItrace session ${completed ? 'complete' : 'ended'}</h1>
   <p class="sub">${esc(label)}</p>
   ${
     completed

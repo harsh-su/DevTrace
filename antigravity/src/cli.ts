@@ -33,7 +33,7 @@ async function main() {
     process.stdout.write(
       JSON.stringify({
         decision: 'allow',
-        reason: `Tether hook error: ${(err as Error).message}`,
+        reason: `AItrace hook error: ${(err as Error).message}`,
       }),
     )
   }
