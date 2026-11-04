@@ -43,26 +43,28 @@ export function diffHunk(before: string, after: string): Hunk {
   }
 }
 
-/** Cap on the Myers edit distance before we fall back to a coarse single hunk. */
+/** Cap on the character-level Myers edit distance before using line anchors. */
 const MAX_EDIT_DISTANCE = 1200
+/**
+ * Cap on the line-level edit distance. Lines change far less often than
+ * characters, so this is only reached by a near-total rewrite.
+ */
+const MAX_LINE_EDIT_DISTANCE = 1200
 
 type Op = { kind: 'eq' | 'del' | 'ins'; text: string }
 
 /**
- * Myers O(ND) diff over UTF-16 code units. Returns the edit script, or null when
- * the edit distance exceeds `MAX_EDIT_DISTANCE` (a near-total rewrite, where the
- * quadratic trace would be wasteful and a coarse hunk is good enough).
+ * Myers O(ND) diff over an array of tokens (UTF-16 code units or whole lines).
+ * Returns the edit script, or null when the edit distance exceeds `maxDistance`.
  */
-function diffOps(before: string, after: string): Op[] | null {
-  const a = before.split('')
-  const b = after.split('')
+function myersOps(a: string[], b: string[], maxDistance: number): Op[] | null {
   const n = a.length
   const m = b.length
   if (n === 0 && m === 0) return []
   if (n === 0) return b.map((text) => ({ kind: 'ins' as const, text }))
   if (m === 0) return a.map((text) => ({ kind: 'del' as const, text }))
 
-  const max = Math.min(n + m, MAX_EDIT_DISTANCE)
+  const max = Math.min(n + m, maxDistance)
   const v = new Map<number, number>()
   const trace: Map<number, number>[] = []
 
@@ -85,6 +87,11 @@ function diffOps(before: string, after: string): Op[] | null {
     }
   }
   return null
+}
+
+/** Character-level diff over UTF-16 code units. */
+function diffOps(before: string, after: string): Op[] | null {
+  return myersOps(before.split(''), after.split(''), MAX_EDIT_DISTANCE)
 }
 
 /** Walk a stored Myers trace backwards into a forward edit script. */
@@ -123,22 +130,9 @@ function backtrack(trace: Map<number, number>[], a: string[], b: string[]): Op[]
   return ops.reverse()
 }
 
-/**
- * All minimal changed hunks between two versions of a file. Distant edits become
- * separate hunks, so a trace never scores the unchanged text between them.
- */
-export function diffHunks(before: string, after: string): Hunk[] {
-  if (before === after) return []
-
-  const ops = diffOps(before, after)
-  if (!ops) {
-    const coarse = diffHunk(before, after)
-    return coarse.oldText === '' && coarse.newText === ''
-      ? []
-      : [coarse]
-  }
-
-  const rawHunks: Hunk[] = []
+/** Build hunks from one edit script, relative to the scanned text. */
+function hunksFromOps(ops: Op[]): Hunk[] {
+  const hunks: Hunk[] = []
   let current: Hunk | undefined
   let offset = 0
   let afterOffset = 0
@@ -152,7 +146,7 @@ export function diffHunks(before: string, after: string): Hunk[] {
     }
     if (!current) {
       current = { start: offset, afterStart: afterOffset, oldText: '', newText: '' }
-      rawHunks.push(current)
+      hunks.push(current)
     }
     if (op.kind === 'del') {
       current.oldText += op.text
@@ -163,13 +157,20 @@ export function diffHunks(before: string, after: string): Hunk[] {
     }
   }
 
-  // Coalesce micro-hunks that are separated by small intra-line unchanged gaps (e.g. within a word)
-  if (rawHunks.length <= 1) return rawHunks
+  return hunks
+}
 
-  const coalesced: Hunk[] = [{ ...rawHunks[0]! }]
-  for (let i = 1; i < rawHunks.length; i++) {
+/**
+ * Coalesce micro-hunks separated by small intra-line unchanged gaps (e.g. within
+ * a word) so one small edit stays one hunk.
+ */
+function coalesceHunks(before: string, hunks: Hunk[]): Hunk[] {
+  if (hunks.length <= 1) return hunks
+
+  const coalesced: Hunk[] = [{ ...hunks[0]! }]
+  for (let i = 1; i < hunks.length; i++) {
     const prev = coalesced[coalesced.length - 1]!
-    const curr = rawHunks[i]!
+    const curr = hunks[i]!
     const gap = before.slice(prev.start + prev.oldText.length, curr.start)
     if (!gap.includes('\n') && gap.length <= 8) {
       prev.oldText += gap + curr.oldText
@@ -180,6 +181,157 @@ export function diffHunks(before: string, after: string): Hunk[] {
   }
 
   return coalesced
+}
+
+/** Split text into lines, keeping each line's trailing newline. */
+function splitLines(text: string): string[] {
+  const lines: string[] = []
+  let start = 0
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\n') {
+      lines.push(text.slice(start, i + 1))
+      start = i + 1
+    }
+  }
+  if (start < text.length) lines.push(text.slice(start))
+  return lines
+}
+
+/** Offset of each line, plus one entry for the end of the text. */
+function lineStarts(lines: string[]): number[] {
+  const starts: number[] = []
+  let offset = 0
+  for (const line of lines) {
+    starts.push(offset)
+    offset += line.length
+  }
+  starts.push(offset)
+  return starts
+}
+
+function commonLinePrefix(a: string[], b: string[]): number {
+  const n = Math.min(a.length, b.length)
+  let i = 0
+  while (i < n && a[i] === b[i]) i++
+  return i
+}
+
+/**
+ * Refine one contiguous block of changed lines with a character-level diff. The
+ * block is already free of unchanged lines, so a coarse hunk here cannot pull in
+ * unrelated code between hunks.
+ */
+function refineBlock(
+  before: string,
+  after: string,
+  bStart: number,
+  bEnd: number,
+  aStart: number,
+  aEnd: number,
+): Hunk[] {
+  const bText = before.slice(bStart, bEnd)
+  const aText = after.slice(aStart, aEnd)
+  const ops = diffOps(bText, aText)
+  if (ops) {
+    return hunksFromOps(ops).map((h) => ({
+      ...h,
+      start: h.start + bStart,
+      afterStart: h.afterStart + aStart,
+    }))
+  }
+  const coarse = diffHunk(bText, aText)
+  if (coarse.oldText === '' && coarse.newText === '') return []
+  return [{ ...coarse, start: coarse.start + bStart, afterStart: coarse.afterStart + aStart }]
+}
+
+/**
+ * Line-anchored fallback used when the character-level edit distance exceeds the
+ * cap. Unchanged lines stay `eq` ops, so two distant edits (or an edit followed
+ * by a large insertion) become separate hunks instead of one coarse span.
+ */
+function diffHunksByLines(before: string, after: string): Hunk[] {
+  const beforeLines = splitLines(before)
+  const afterLines = splitLines(after)
+  const beforeStarts = lineStarts(beforeLines)
+  const afterStarts = lineStarts(afterLines)
+  const ops = myersOps(beforeLines, afterLines, MAX_LINE_EDIT_DISTANCE)
+
+  if (!ops) {
+    // A near-total rewrite: trim the common lines, then treat the middle as one
+    // block. This is still tighter than trimming only characters.
+    const prefix = commonLinePrefix(beforeLines, afterLines)
+    let suffix = 0
+    const limit = Math.min(beforeLines.length, afterLines.length) - prefix
+    while (
+      suffix < limit &&
+      beforeLines[beforeLines.length - 1 - suffix] === afterLines[afterLines.length - 1 - suffix]
+    ) {
+      suffix++
+    }
+    return coalesceHunks(
+      before,
+      refineBlock(
+        before,
+        after,
+        beforeStarts[prefix]!,
+        beforeStarts[beforeLines.length - suffix]!,
+        afterStarts[prefix]!,
+        afterStarts[afterLines.length - suffix]!,
+      ),
+    )
+  }
+
+  const hunks: Hunk[] = []
+  let b = 0
+  let a = 0
+  let blockB = -1
+  let blockA = -1
+  const flush = (): void => {
+    if (blockB < 0) return
+    hunks.push(
+      ...refineBlock(
+        before,
+        after,
+        beforeStarts[blockB]!,
+        beforeStarts[b]!,
+        afterStarts[blockA]!,
+        afterStarts[a]!,
+      ),
+    )
+    blockB = -1
+    blockA = -1
+  }
+
+  for (const op of ops) {
+    if (op.kind === 'eq') {
+      flush()
+      b++
+      a++
+      continue
+    }
+    if (blockB < 0) {
+      blockB = b
+      blockA = a
+    }
+    if (op.kind === 'del') b++
+    else a++
+  }
+  flush()
+
+  return coalesceHunks(before, hunks)
+}
+
+/**
+ * All minimal changed hunks between two versions of a file. Distant edits become
+ * separate hunks, so a trace never scores the unchanged text between them.
+ */
+export function diffHunks(before: string, after: string): Hunk[] {
+  if (before === after) return []
+
+  const ops = diffOps(before, after)
+  if (ops) return coalesceHunks(before, hunksFromOps(ops))
+
+  return diffHunksByLines(before, after)
 }
 
 /**

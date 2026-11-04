@@ -100,6 +100,37 @@ function applyHunks(before: string, hunks: Hunk[]): string {
 }
 
 {
+  // Regression: once the edit distance exceeds the char-level cap, a coarse
+  // prefix/suffix hunk used to span every unchanged line between two distant
+  // edits (and any large insertion after them). Those lines must never be
+  // traceable — only the AI's actual changes should be.
+  const before = 'alpha\nbeta\ngamma\ndelta\nepsilon\nomega\n'
+  const added = Array.from({ length: 400 }, (_, i) => `const value${i} = ${i};`).join('\n')
+  const after = 'alpha\nBETA\ngamma\ndelta\nEPSILON\nomega\n' + added + '\n'
+  const hs = diffHunks(before, after)
+  ok('large edit + distant change -> separate hunks', hs.length === 3, `got ${hs.length}`)
+  ok(
+    'unchanged lines between edits are never traced',
+    !hs.some((h) =>
+      ['gamma', 'delta', 'omega'].some((line) => h.oldText.includes(line) || h.newText.includes(line)),
+    ),
+    `${hs.length} hunks`,
+  )
+  ok(
+    'distant edits stay minimal hunks',
+    hs[0]?.oldText === 'beta' && hs[0]?.newText === 'BETA' &&
+      hs[1]?.oldText === 'epsilon' && hs[1]?.newText === 'EPSILON',
+    `${JSON.stringify(hs[0]?.oldText)} and ${JSON.stringify(hs[1]?.oldText)}`,
+  )
+  ok('large-edit hunks rebuild after', applyHunks(before, hs) === after, applyHunks(before, hs))
+  ok(
+    'large insertion is its own hunk',
+    hs[2]?.newText === added + '\n' && hs[2]?.oldText === '',
+    `${JSON.stringify(hs[2]?.oldText?.slice(0, 16))} -> ${JSON.stringify(hs[2]?.newText?.slice(0, 16))}`,
+  )
+}
+
+{
   const before = 'def f():\n    return 1\n'
   const after = 'def f():\n    return 2\n\nprint(f())\n'
   const hs = diffHunks(before, after)
