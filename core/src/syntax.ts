@@ -28,20 +28,43 @@ const JS_KEYWORDS = new Set([
   'switch', 'case', 'break', 'continue', 'extends', 'implements', 'interface', 'type'
 ])
 
+const RUST_KEYWORDS = new Set([
+  'as', 'async', 'await', 'break', 'const', 'continue', 'crate', 'dyn', 'else', 'enum',
+  'extern', 'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod',
+  'move', 'mut', 'pub', 'ref', 'return', 'self', 'Self', 'static', 'struct', 'super',
+  'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while', 'yield', 'union'
+])
+
+const CPP_KEYWORDS = new Set([
+  'alignas', 'alignof', 'auto', 'bool', 'break', 'case', 'catch', 'char', 'class',
+  'const', 'constexpr', 'continue', 'default', 'delete', 'do', 'double', 'else',
+  'enum', 'explicit', 'export', 'extern', 'false', 'float', 'for', 'friend', 'goto',
+  'if', 'inline', 'int', 'long', 'mutable', 'namespace', 'new', 'noexcept', 'nullptr',
+  'operator', 'private', 'protected', 'public', 'return', 'short', 'signed', 'sizeof',
+  'static', 'struct', 'switch', 'template', 'this', 'throw', 'true', 'try', 'typedef',
+  'typename', 'union', 'unsigned', 'using', 'virtual', 'void', 'volatile', 'while'
+])
+
 const BUILTINS = new Set([
   'True', 'False', 'None', 'self', 'cls', 'super', 'print', 'len', 'range', 'enumerate',
   'int', 'str', 'float', 'bool', 'list', 'dict', 'set', 'tuple',
-  'true', 'false', 'null', 'undefined', 'this', 'console', 'window', 'document', 'process'
+  'true', 'false', 'null', 'undefined', 'this', 'console', 'window', 'document', 'process',
+  'String', 'Vec', 'Option', 'Result', 'Box', 'std', 'cout', 'cin', 'cerr', 'endl', 'printf'
 ])
 
-function resolveLang(lang?: string): 'py' | 'js' | null {
+type TokenLang = 'py' | 'js' | 'rust' | 'cpp' | null
+
+function resolveLang(lang?: string): TokenLang {
   if (!lang) return null
   const clean = lang.trim().toLowerCase()
   const base = clean.split(/[/\\]/).pop() ?? clean
-  const ext = base.includes('.') ? base.split('.').pop() ?? '' : base
-  if (['py', 'python', 'gyp'].includes(ext)) return 'py'
-  if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'javascript', 'typescript'].includes(ext)) return 'js'
-  return 'py'
+  const ext = base.includes('.') ? base.split('.').pop() ?? '' : ''
+  const token = ext || base
+  if (['py', 'python', 'gyp'].includes(token)) return 'py'
+  if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'javascript', 'typescript'].includes(token)) return 'js'
+  if (['rs', 'rust'].includes(token)) return 'rust'
+  if (['c', 'h', 'cc', 'cpp', 'cxx', 'c++', 'hpp', 'hh', 'hxx'].includes(token)) return 'cpp'
+  return null
 }
 
 /** Returns an array of syntax tags (one per character) for a line of code. */
@@ -54,13 +77,22 @@ export function tokenizeLine(line: string, lang?: string): string[] {
   if (!targetLang) return tags
 
   const isPy = targetLang === 'py'
+  const isSlash = targetLang === 'js' || targetLang === 'rust' || targetLang === 'cpp'
+  const keywords =
+    targetLang === 'py'
+      ? PYTHON_KEYWORDS
+      : targetLang === 'js'
+        ? JS_KEYWORDS
+        : targetLang === 'rust'
+          ? RUST_KEYWORDS
+          : CPP_KEYWORDS
   let i = 0
 
   while (i < len) {
     const ch = line[i]!
 
     // Comments
-    if ((isPy && ch === '#') || (!isPy && ch === '/' && line[i + 1] === '/')) {
+    if ((isPy && ch === '#') || (isSlash && ch === '/' && line[i + 1] === '/')) {
       for (let k = i; k < len; k++) tags[k] = 'c'
       break
     }
@@ -107,7 +139,7 @@ export function tokenizeLine(line: string, lang?: string): string[] {
       const isCall = line[nextNonSpace] === '('
 
       let tag = ''
-      if (isPy ? PYTHON_KEYWORDS.has(word) : JS_KEYWORDS.has(word)) {
+      if (keywords.has(word)) {
         tag = 'k'
       } else if (BUILTINS.has(word)) {
         tag = 'b'

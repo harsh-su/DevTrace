@@ -47,6 +47,12 @@ interface RegionInit {
   target: string
 }
 
+type RunInfo = {
+  canRun: boolean
+  kind?: 'stdin' | 'compile' | 'custom'
+  language?: 'python' | 'node' | 'tsx' | 'rust' | 'cpp' | 'custom'
+}
+
 interface InitMessage {
   type: 'init'
   after: string
@@ -57,9 +63,117 @@ interface InitMessage {
   /** Tour mode only: the plain-English explanation shown before typing. */
   brief?: string
   language?: ReturnType<typeof languageId>
+  fileName?: string
+  run?: RunInfo
+}
+
+type RunStatus = 'idle' | 'building' | 'running' | 'done' | 'error' | 'cancelled'
+
+interface RunState {
+  runId?: string
+  status: RunStatus
+  command: string
+  cwd: string
+  language?: string
+  runKind?: string
+  phase?: 'build' | 'run'
+  stdout: string
+  stderr: string
+  exitCode?: number | null
+  durationMs?: number
+  timedOut?: boolean
+  truncated?: boolean
+  failedPhase?: 'build' | 'run'
+  message?: string
 }
 
 type Phase = 'idle' | 'brief' | 'trace' | 'done'
+
+const EMPTY_RUN: RunState = {
+  status: 'idle',
+  command: '',
+  cwd: '',
+  stdout: '',
+  stderr: '',
+}
+
+function formatDuration(ms?: number): string {
+  if (ms === undefined) return ''
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(2)}s`
+}
+
+function RunConsole({
+  run,
+  onStop,
+  onClear,
+  onWholeFile,
+  showWholeFile,
+}: {
+  run: RunState
+  onStop: () => void
+  onClear: () => void
+  onWholeFile: () => void
+  showWholeFile: boolean
+}) {
+  const [open, setOpen] = useState(true)
+  if (run.status === 'idle') return null
+  const active = run.status === 'building' || run.status === 'running'
+  const label =
+    run.status === 'building'
+      ? 'Compiling…'
+      : run.status === 'running'
+        ? 'Running…'
+        : run.status === 'done'
+          ? `Exited ${run.exitCode ?? 0} · ${formatDuration(run.durationMs)}`
+          : run.status === 'cancelled' || run.timedOut
+            ? run.timedOut
+              ? `Timed out · ${formatDuration(run.durationMs)}`
+              : 'Stopped'
+            : run.failedPhase === 'build'
+              ? 'Build failed'
+              : run.exitCode !== null && run.exitCode !== undefined
+                ? `Exited ${run.exitCode} · ${formatDuration(run.durationMs)}`
+                : 'Run failed'
+
+  return (
+    <section className={`run-console ${open ? 'open' : 'closed'}`}>
+      <header className="run-head">
+        <button className="run-toggle" onClick={() => setOpen((v) => !v)} title={open ? 'Collapse output' : 'Expand output'}>
+          {open ? '▾' : '▸'}
+        </button>
+        <span className={`run-pill status-${run.status}`}>{label}</span>
+        <code className="run-cmd" title={run.command}>{run.command || '—'}</code>
+        <div className="run-actions">
+          {showWholeFile && !active && (run.failedPhase === 'build' || run.status === 'error') && (
+            <button onClick={onWholeFile}>Run whole file</button>
+          )}
+          {active ? (
+            <button className="ghost" onClick={onStop}>Stop</button>
+          ) : (
+            <button className="ghost" onClick={onClear}>Clear</button>
+          )}
+        </div>
+      </header>
+      {open && (
+        <div className="run-body">
+          <div className="run-meta">
+            <span>{run.language ?? 'code'}</span>
+            {run.runKind === 'compile' && <span>compiled</span>}
+            {run.phase && <span>{run.phase === 'build' ? 'build' : 'run'}</span>}
+            <span className="run-cwd" title={run.cwd}>{run.cwd}</span>
+          </div>
+          {run.message && <div className="run-message">{run.message}</div>}
+          {run.stdout && <pre className="run-out run-stdout">{run.stdout}</pre>}
+          {run.stderr && <pre className="run-out run-stderr">{run.stderr}</pre>}
+          {!run.stdout && !run.stderr && !run.message && (
+            <div className="run-empty">{active ? 'Waiting for output…' : 'No output.'}</div>
+          )}
+          {run.truncated && <div className="run-trunc">Output truncated at 200 KB.</div>}
+        </div>
+      )}
+    </section>
+  )
+}
 
 /** Offset -> line, over the whole proposed file. */
 function lineAtDoc(doc: Doc, off: number): number {
@@ -74,6 +188,9 @@ function App() {
   const [mode, setMode] = useState<NonNullable<InitMessage['mode']>>('proposal')
   const [brief, setBrief] = useState('')
   const [language, setLanguage] = useState<ReturnType<typeof languageId>>('none')
+  const [fileName, setFileName] = useState('')
+  const [runInfo, setRunInfo] = useState<RunInfo | undefined>(undefined)
+  const [run, setRun] = useState<RunState>(EMPTY_RUN)
   const [activeIndex, setActiveIndex] = useState(-1)
   const [final, setFinal] = useState<Metrics | null>(null)
   const [offenders, setOffenders] = useState<Offender[]>([])
@@ -124,8 +241,82 @@ function App() {
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      const m = e.data as InitMessage | undefined
-      if (m?.type !== 'init') return
+      const m = e.data as
+        | InitMessage
+        | { type: 'runStarted'; runId: string; command: string; cwd: string; language?: string; runKind?: string; phase?: 'build' | 'run' }
+        | { type: 'runPhase'; runId: string; phase: 'build' | 'run' }
+        | { type: 'runOutput'; runId: string; stream: 'stdout' | 'stderr'; chunk: string }
+        | { type: 'runDone'; runId: string; exitCode: number | null; durationMs: number; timedOut: boolean; cancelled: boolean; truncated: boolean; failedPhase?: 'build' | 'run' }
+        | { type: 'runError'; runId: string; message: string; phase?: 'build' | 'run' }
+        | undefined
+      if (!m) return
+
+      if (m.type === 'runStarted') {
+        setRun({
+          ...EMPTY_RUN,
+          runId: m.runId,
+          status: m.phase === 'build' ? 'building' : 'running',
+          command: m.command,
+          cwd: m.cwd,
+          language: m.language,
+          runKind: m.runKind,
+          phase: m.phase,
+        })
+        return
+      }
+      if (m.type === 'runPhase') {
+        setRun((prev) =>
+          prev.runId === m.runId
+            ? { ...prev, status: m.phase === 'build' ? 'building' : 'running', phase: m.phase }
+            : prev,
+        )
+        return
+      }
+      if (m.type === 'runOutput') {
+        setRun((prev) => {
+          if (prev.runId !== m.runId) return prev
+          if (m.stream === 'stdout') return { ...prev, stdout: prev.stdout + m.chunk }
+          return { ...prev, stderr: prev.stderr + m.chunk }
+        })
+        return
+      }
+      if (m.type === 'runDone') {
+        setRun((prev) => {
+          if (prev.runId !== m.runId) return prev
+          const status: RunStatus = m.cancelled
+            ? 'cancelled'
+            : m.timedOut || m.exitCode !== 0 || m.failedPhase
+              ? 'error'
+              : 'done'
+          return {
+            ...prev,
+            status,
+            exitCode: m.exitCode,
+            durationMs: m.durationMs,
+            timedOut: m.timedOut,
+            truncated: m.truncated || prev.truncated,
+            failedPhase: m.failedPhase,
+          }
+        })
+        return
+      }
+      if (m.type === 'runError') {
+        setRun((prev) => {
+          if (prev.runId === m.runId) {
+            return { ...prev, status: 'error', phase: m.phase ?? prev.phase, message: m.message }
+          }
+          if (prev.status === 'building' || prev.status === 'running') return prev
+          return {
+            ...EMPTY_RUN,
+            runId: m.runId,
+            status: 'error',
+            phase: m.phase,
+            message: m.message,
+          }
+        })
+        return
+      }
+      if (m.type !== 'init') return
 
       const doc = buildDoc(m.after)
       const states = new Uint8Array(m.after.length).fill(CONTEXT)
@@ -158,6 +349,9 @@ function App() {
       setLabel(m.label)
        setMode(m.mode ?? 'proposal')
        setLanguage(m.language ?? 'none')
+      setFileName(m.fileName ?? '')
+      setRunInfo(m.run)
+      setRun(EMPTY_RUN)
       setBrief(m.brief ?? '')
       setFinal(null)
       setOffenders([])
@@ -296,6 +490,23 @@ function App() {
     vscode.postMessage({ type: 'discard' })
   }, [])
 
+  const runProposal = useCallback((upTo: number) => {
+    const texts = tracesRef.current.map((t) => typedText(t))
+    vscode.postMessage({ type: 'run', mode: 'proposal', upTo, texts })
+  }, [])
+
+  const runTour = useCallback((scope: 'step' | 'file') => {
+    vscode.postMessage({ type: 'run', mode: 'tour', scope })
+  }, [])
+
+  const stopRun = useCallback(() => {
+    vscode.postMessage({ type: 'runCancel', runId: run.runId })
+  }, [run.runId])
+
+  const clearRun = useCallback(() => {
+    setRun(EMPTY_RUN)
+  }, [])
+
   const start = useCallback(() => {
     setPhase('trace')
   }, [])
@@ -344,6 +555,7 @@ function App() {
     setActiveIndex(first)
     setFinal(null)
     setOffenders([])
+    setRun(EMPTY_RUN)
     setTick(0)
      if (first >= 0) setPhase('trace')
      else {
@@ -406,38 +618,72 @@ function App() {
   const doc = docRef.current
   const traces = tracesRef.current
   const regions = regionsRef.current
+  const canRun = runInfo?.canRun === true
+  const runActive = run.status === 'building' || run.status === 'running'
+  let runThrough = -1
+  for (let i = 0; i < traces.length; i++) {
+    const t = traces[i]
+    if (t && isComplete(t)) runThrough = i
+    else break
+  }
 
   if (phase === 'done' && final) {
     const mismatch =
       mode === 'proposal' && regions.some((r, i) => typedText(traces[i] as Trace) !== r.target)
     return (
-      <Results
-        offenders={offenders}
-        metrics={final}
-        label={label}
-        title={mode === 'tour' ? 'Step typed' : 'Change traced'}
-        note={
-          mismatch ? (
-            <div className="panel-note">
-              <span>Saving writes exactly what you typed, which differs from the proposed code.</span>
+      <>
+        <Results
+          offenders={offenders}
+          metrics={final}
+          label={label}
+          title={mode === 'tour' ? 'Step typed' : 'Change traced'}
+          note={
+            mismatch ? (
+              <div className="panel-note">
+                <span>Saving writes exactly what you typed, which differs from the proposed code.</span>
+              </div>
+            ) : undefined
+          }
+          onRetrace={retrace}
+          onAnother={discard}
+          onFiles={discard}
+          actions={
+            <div className="ractions">
+              {canRun && runThrough >= 0 &&
+                (mode === 'tour' ? (
+                  <>
+                    <button className="go" onClick={() => runTour('file')} disabled={runActive}>
+                      ▶ Run whole file
+                    </button>
+                    <button onClick={() => runTour('step')} disabled={runActive}>
+                      Run step
+                    </button>
+                  </>
+                ) : (
+                  <button className="go" onClick={() => runProposal(runThrough)} disabled={runActive}>
+                    ▶ Run all traced changes
+                  </button>
+                ))}
+              <button className="go" onClick={save}>
+                {mode === 'tour' ? 'Mark step done' : 'Save typed code'}
+              </button>
+              <button onClick={retrace}>Trace again</button>
+              <button className="ghost" onClick={discard}>
+                {mode === 'tour' ? 'Later' : 'Discard'}
+              </button>
             </div>
-          ) : undefined
-        }
-        onRetrace={retrace}
-        onAnother={discard}
-        onFiles={discard}
-        actions={
-          <div className="ractions">
-            <button className="go" onClick={save}>
-              {mode === 'tour' ? 'Mark step done' : 'Save typed code'}
-            </button>
-            <button onClick={retrace}>Trace again</button>
-            <button className="ghost" onClick={discard}>
-              {mode === 'tour' ? 'Later' : 'Discard'}
-            </button>
-          </div>
-        }
-      />
+          }
+        />
+        <div className="run-wrap">
+          <RunConsole
+            run={run}
+            onStop={stopRun}
+            onClear={clearRun}
+            onWholeFile={() => runTour('file')}
+            showWholeFile={mode === 'tour' && canRun}
+          />
+        </div>
+      </>
     )
   }
 
@@ -562,6 +808,35 @@ function App() {
 
           <ThemeToggle theme={theme} onToggle={toggle} />
 
+          {canRun && runThrough >= 0 &&
+            (mode === 'tour' ? (
+              <>
+                {runInfo?.kind === 'compile' ? (
+                  <>
+                    <button className="hud-btn run-btn" onClick={() => runTour('file')} disabled={runActive}>
+                      ▶ Run whole file
+                    </button>
+                    <button className="hud-btn run-btn" onClick={() => runTour('step')} disabled={runActive}>
+                      Run step
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="hud-btn run-btn" onClick={() => runTour('step')} disabled={runActive}>
+                      ▶ Run step
+                    </button>
+                    <button className="hud-btn run-btn" onClick={() => runTour('file')} disabled={runActive}>
+                      Run whole file
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <button className="hud-btn run-btn" onClick={() => runProposal(runThrough)} disabled={runActive}>
+                ▶ Run up to hunk {runThrough + 1}
+              </button>
+            ))}
+
           <button
             className="hud-btn hud-accept-hunk"
             onClick={acceptCurrentHunk}
@@ -606,9 +881,19 @@ function App() {
             cursorAfter={cursorAfter}
             scrollerRef={scrollerRef}
             onLineClick={onLineClick}
-            language={label}
+            language={fileName || label}
           />
         </main>
+      </div>
+
+      <div className="run-wrap">
+        <RunConsole
+          run={run}
+          onStop={stopRun}
+          onClear={clearRun}
+          onWholeFile={() => runTour('file')}
+          showWholeFile={mode === 'tour' && canRun}
+        />
       </div>
 
       <footer className="foot">

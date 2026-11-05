@@ -112,6 +112,7 @@ async function applyPending(group: PendingFile): Promise<'save' | 'discard'> {
 
   const result = await TracePanel.show(extensionUri, group.after, regions, label, {
     language: languageId(group.file),
+    run: { file: group.file, baseText: current, hunks },
   })
 
   statusItem.text = '$(keyboard) AItrace'
@@ -240,6 +241,11 @@ async function traceTourStep(stepId: string): Promise<void> {
     mode: 'tour',
     brief: step.explanation,
     language: languageId(step.file),
+    run: {
+      file: abs.fsPath,
+      baseText: text,
+      step: { start: step.start, lines: step.lines },
+    },
   })
 
   statusItem.text = '$(keyboard) AItrace'
@@ -428,6 +434,25 @@ export function activate(context: vscode.ExtensionContext): void {
     statusItem.command = 'aitrace.endSession'
     statusItem.tooltip = 'Tracing — click (or Esc) to end session'
     statusItem.show()
+  }
+
+  TracePanel.runConsent = async () => {
+    const key = 'aitrace.runConsent'
+    if (context.workspaceState.get<boolean>(key, false)) return true
+    const pick = await vscode.window.showWarningMessage(
+      'Run traced code?',
+      {
+        modal: true,
+        detail:
+          'AItrace will execute the current file with your configured toolchain. ' +
+          'This runs real code on this machine, including compiled Rust/C++ programs. ' +
+          'Only run code you trust.',
+      },
+      'Run code',
+    )
+    if (pick !== 'Run code') return false
+    await context.workspaceState.update(key, true)
+    return true
   }
 
   // The pending-changes panel: a Source Control-like list of AI edits waiting to

@@ -7,7 +7,7 @@ export type SourceLanguage = 'c' | 'html' | 'hash' | 'none'
 
 export function languageId(fileName: string): SourceLanguage {
   const ext = fileName.toLowerCase().split('.').pop() ?? ''
-  if (['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'java', 'go', 'rs', 'c', 'h', 'cpp', 'cc', 'hpp', 'cs', 'swift', 'kt'].includes(ext)) return 'c'
+  if (['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'java', 'go', 'rs', 'c', 'h', 'cpp', 'cc', 'cxx', 'c++', 'hpp', 'hh', 'hxx', 'cs', 'swift', 'kt'].includes(ext)) return 'c'
   if (['html', 'htm', 'xml', 'svg'].includes(ext)) return 'html'
   if (['py', 'pyi', 'rb', 'sh', 'bash', 'zsh', 'yaml', 'yml', 'toml', 'r'].includes(ext)) return 'hash'
   return 'none'

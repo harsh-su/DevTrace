@@ -2,7 +2,7 @@
   "name": "aitrace",
   "displayName": "AItrace",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "publisher": "byteWorxs",
   "license": "MIT",
@@ -375,6 +375,52 @@
           "type": "boolean",
           "default": false,
           "description": "Open the trace panel for each pending file automatically. When off, files wait in the AItrace sidebar until you start them."
+        },
+        "aitrace.run.python": {
+          "type": "string",
+          "default": "python3",
+          "description": "Python interpreter used by Run for .py files."
+        },
+        "aitrace.run.node": {
+          "type": "string",
+          "default": "node",
+          "description": "Node.js executable used by Run for .js, .mjs, and .cjs files."
+        },
+        "aitrace.run.tsx": {
+          "type": "string",
+          "default": "tsx",
+          "description": "tsx executable used by Run for TypeScript files."
+        },
+        "aitrace.run.rustc": {
+          "type": "string",
+          "default": "rustc",
+          "description": "Rust compiler used by Run for .rs files. Single-file compilation with rustc, not Cargo."
+        },
+        "aitrace.run.cpp": {
+          "type": "string",
+          "default": "c++",
+          "description": "C++ compiler used by Run for .cpp, .cc, .cxx, and .c++ files."
+        },
+        "aitrace.run.rustEdition": {
+          "type": "string",
+          "default": "2021",
+          "description": "Rust edition passed to rustc by Run."
+        },
+        "aitrace.run.cppStandard": {
+          "type": "string",
+          "default": "c++17",
+          "description": "C++ standard passed to the C++ compiler by Run."
+        },
+        "aitrace.run.command": {
+          "type": "string",
+          "default": "",
+          "description": "Optional command template used instead of built-in language detection. ${file} is replaced with a temporary copy of the traced source. The command runs through your shell, so only use commands you trust."
+        },
+        "aitrace.run.timeoutMs": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 1000,
+          "description": "Maximum time in milliseconds for each compile or run phase."
         },
         "aitrace.enabled": {
           "type": "boolean",

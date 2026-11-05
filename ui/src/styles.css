@@ -737,6 +737,157 @@ input:focus { border-color: var(--accent); }
 }
 .panel-note button { padding: 3px 10px; font-size: 12px; }
 
+/* --- run console ---------------------------------------------------------- */
+
+.hud-btn.run-btn {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-theme="light"] .hud-btn.run-btn {
+  background: rgba(2, 132, 199, 0.1);
+}
+
+.run-wrap {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 12px 16px 0;
+}
+.panel.results + .run-wrap {
+  max-width: 720px;
+  padding: 0 24px 40px;
+}
+
+.run-console {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.run-console.closed .run-head { border-bottom: 0; }
+
+.run-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-3);
+}
+.run-toggle {
+  padding: 1px 6px;
+  font-size: 11px;
+  line-height: 1.3;
+  background: transparent;
+}
+.run-pill {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--fg-dim);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.run-pill.status-building,
+.run-pill.status-running {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.run-pill.status-done {
+  border-color: var(--good);
+  color: var(--good);
+}
+.run-pill.status-error {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+.run-pill.status-cancelled {
+  color: var(--fg-faint);
+}
+.run-cmd {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.run-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.run-actions button {
+  padding: 3px 9px;
+  font-size: 11.5px;
+}
+.run-body { padding: 10px 12px 12px; }
+.run-meta {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: var(--fg-faint);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.run-cwd {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--mono);
+}
+.run-out {
+  margin: 0 0 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--code);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
+}
+.run-out:last-child { margin-bottom: 0; }
+.run-stderr {
+  color: var(--err-fg);
+  border-color: var(--err-line);
+  background: var(--err-bg);
+}
+.run-empty {
+  color: var(--fg-faint);
+  font-size: 12px;
+}
+.run-message {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--err-line);
+  border-radius: 6px;
+  background: var(--err-bg);
+  color: var(--err-fg);
+  font-size: 12px;
+}
+.run-trunc {
+  margin-top: 8px;
+  color: var(--note-fg);
+  font-size: 11.5px;
+}
+
 @media (max-width: 720px) {
   .statgrid { grid-template-columns: repeat(2, 1fr); }
   .stat.big { grid-column: span 2; }
@@ -744,4 +895,6 @@ input:focus { border-color: var(--accent); }
   .chunkpane { width: auto; border-top: 1px solid var(--line); }
   .trace-layout { flex-direction: column; }
   .surface-head { padding-left: 16px; padding-right: 16px; }
+  .run-head { flex-wrap: wrap; }
+  .run-cmd { flex-basis: 100%; order: 3; }
 }

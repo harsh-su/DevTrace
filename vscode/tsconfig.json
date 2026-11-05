@@ -12,5 +12,5 @@
       "@aitrace/ui": ["../ui/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }
