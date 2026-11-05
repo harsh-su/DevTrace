@@ -29,18 +29,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Antigravity hook
-        run: npm --workspace @aitrace/antigravity run build
+      - name: Build AI hooks
+        run: |
+          npm --workspace @aitrace/antigravity run build
+          npm --workspace @aitrace/copilot run build
 
       - name: Typecheck
         run: |
           npm run typecheck
           npm --workspace aitrace run typecheck
+          npm --workspace @aitrace/copilot run typecheck
 
       - name: Test
         run: |
           npm test
           npm run test:antigravity
+          npm run test:copilot
 
       - name: Build extension
         run: npm --workspace aitrace run build

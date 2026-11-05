@@ -1,0 +1,12 @@
+{
+  "name": "@aitrace/copilot",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/aitrace-hook.mjs",
+    "test": "tsx test/hook.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

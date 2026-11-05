@@ -196,7 +196,7 @@ async function traceTourStep(stepId: string): Promise<void> {
   const tour = tourStore.getTour()
   if (!tour) {
     void vscode.window.showInformationMessage(
-      'AItrace: no learning path yet. Ask OpenCode to "tour me through this project".',
+      'AItrace: no learning path yet. Ask OpenCode or GitHub Copilot to "tour me through this project".',
     )
     return
   }
@@ -217,7 +217,7 @@ async function traceTourStep(stepId: string): Promise<void> {
     text = (await vscode.workspace.openTextDocument(abs)).getText()
   } catch {
     void vscode.window.showWarningMessage(
-      `AItrace: the step points at ${step.file}, which could not be read. The tour may be stale — ask OpenCode to rebuild it.`,
+      `AItrace: the step points at ${step.file}, which could not be read. The tour may be stale — ask OpenCode or GitHub Copilot to rebuild it.`,
     )
     return
   }
@@ -331,7 +331,7 @@ async function setStaging(enabled: boolean): Promise<void> {
     const detail =
       n > 0
         ? `This removes ${n} pending file${n === 1 ? '' : 's'} that haven't been traced.`
-        : 'OpenCode edits will no longer be staged for hand-typing.'
+        : 'AI edits will no longer be staged for hand-typing.'
     const pick = await vscode.window.showWarningMessage(`Turn off AItrace? ${detail}`, { modal: true }, 'Turn off')
     if (pick !== 'Turn off') return
   }
@@ -622,7 +622,7 @@ async function applyDirectly(group: PendingFile): Promise<void> {
   const traceTour = vscode.commands.registerCommand('aitrace.tour.trace', async (id: string) => {
     if (!tourStore.loaded) {
       void vscode.window.showInformationMessage(
-        'AItrace: no learning path yet. Ask OpenCode to "tour me through this project".',
+        'AItrace: no learning path yet. Ask OpenCode or GitHub Copilot to "tour me through this project".',
       )
       return
     }
@@ -633,7 +633,7 @@ async function applyDirectly(group: PendingFile): Promise<void> {
     const tour = tourStore.getTour()
     if (!tour) {
       void vscode.window.showInformationMessage(
-        'AItrace: no learning path yet. Ask OpenCode to "tour me through this project".',
+        'AItrace: no learning path yet. Ask OpenCode or GitHub Copilot to "tour me through this project".',
       )
       return
     }
@@ -742,6 +742,47 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
     }
   })
 
+  const setupCopilot = vscode.commands.registerCommand('aitrace.setupCopilot', async () => {
+    const folders = vscode.workspace.workspaceFolders
+    if (!folders || folders.length === 0) {
+      void vscode.window.showErrorMessage('AItrace: please open a workspace folder first.')
+      return
+    }
+    const folder = folders[0] as vscode.WorkspaceFolder
+    const hooksDir = vscode.Uri.joinPath(folder.uri, '.github', 'hooks')
+    const hookSource = vscode.Uri.joinPath(context.extensionUri, 'assets', 'copilot-aitrace.mjs')
+    const hookTarget = vscode.Uri.joinPath(hooksDir, 'aitrace-hook.mjs')
+    const configTarget = vscode.Uri.joinPath(hooksDir, 'aitrace.json')
+
+    try {
+      await vscode.workspace.fs.createDirectory(hooksDir)
+      const hookBytes = await vscode.workspace.fs.readFile(hookSource)
+      await vscode.workspace.fs.writeFile(hookTarget, hookBytes)
+
+      const command = 'node .github/hooks/aitrace-hook.mjs'
+      const hooksConfig = {
+        version: 1,
+        hooks: {
+          sessionStart: [{ type: 'command', command, cwd: '.', timeout: 15, timeoutSec: 15 }],
+          preToolUse: [{ type: 'command', command, cwd: '.', timeout: 15, timeoutSec: 15 }],
+        },
+      }
+      await vscode.workspace.fs.writeFile(
+        configTarget,
+        Buffer.from(JSON.stringify(hooksConfig, null, 2), 'utf8'),
+      )
+
+      // Enable staging in workspace
+      await setStaging(true)
+
+      void vscode.window.showInformationMessage(
+        'AItrace: GitHub Copilot integration configured! Copilot edits will now be staged for hand-typing in VS Code and Copilot CLI.',
+      )
+    } catch (err) {
+      void vscode.window.showErrorMessage(`AItrace: setup failed — ${(err as Error).message}`)
+    }
+  })
+
   const installPlugin = vscode.commands.registerCommand('aitrace.installOpencodePlugin', async () => {
     try {
       const { pluginsDir } = await installOpencodePlugin(context, true)
@@ -794,6 +835,7 @@ When file editing tools (\`write_to_file\`, \`replace_file_content\`, \`multi_re
     disableStaging,
     configListener,
     setupAntigravity,
+    setupCopilot,
     installPlugin,
     traceTour,
     traceNextTourStep,

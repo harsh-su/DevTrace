@@ -21,3 +21,11 @@ if (existsSync(agSrc)) {
   copyFileSync(agSrc, agDest)
   console.log(`[copy-plugin] ${agSrc} -> ${agDest}`)
 }
+
+// 3. GitHub Copilot hook
+const copilotSrc = join(__dirname, '..', '..', 'copilot', 'dist', 'aitrace-hook.mjs')
+const copilotDest = join(assetsDir, 'copilot-aitrace.mjs')
+if (existsSync(copilotSrc)) {
+  copyFileSync(copilotSrc, copilotDest)
+  console.log(`[copy-plugin] ${copilotSrc} -> ${copilotDest}`)
+}

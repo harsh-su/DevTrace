@@ -7,7 +7,8 @@
     "ui",
     "vscode",
     "opencode-plugin",
-    "antigravity"
+    "antigravity",
+    "copilot"
   ],
   "scripts": {
     "dev": "concurrently -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
@@ -20,7 +21,9 @@
     "test:ui": "tsx ui/test/SourceView.test.tsx && tsx ui/test/FileTraceView.test.tsx",
     "test:plugin": "tsx opencode-plugin/test/bridge.test.ts",
     "test:antigravity": "tsx antigravity/test/hook.test.ts",
+    "test:copilot": "tsx copilot/test/hook.test.ts",
     "build:plugin": "npm --workspace opencode-aitrace run build",
+    "build:copilot": "npm --workspace @aitrace/copilot run build",
     "package:extension": "npm --workspace aitrace run package",
     "typecheck": "tsc --noEmit"
   },

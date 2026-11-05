@@ -8,6 +8,7 @@ vscode/dist
 vscode/out
 vscode/assets/opencode-plugin.ts
 vscode/assets/antigravity-aitrace.mjs
+vscode/assets/copilot-aitrace.mjs
 .agents/
 opencode-plugin/dist
 opencode-plugin/*.tgz

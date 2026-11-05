@@ -2,7 +2,7 @@
   "name": "aitrace",
   "displayName": "AItrace",
   "description": "Trace code you actually write — AI proposes, you type it. Code-aware typing practice inside the editor.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "publisher": "byteWorxs",
   "license": "MIT",
@@ -48,17 +48,17 @@
     "viewsWelcome": [
       {
         "view": "aitrace.tour",
-        "contents": "No learning path yet. Ask OpenCode to “tour me through this project” and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:aitrace.tour.next)"
+        "contents": "No learning path yet. Ask OpenCode or GitHub Copilot to “tour me through this project” and it will order the codebase into explain-then-type steps.\n[Trace the next step](command:aitrace.tour.next)"
       },
       {
         "view": "aitrace.pending",
         "when": "!aitrace.stagingEnabled",
-        "contents": "AItrace is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on AItrace](command:aitrace.enableStaging)\n[Setup OpenCode Plugin](command:aitrace.installOpencodePlugin)\n[Setup Google Antigravity Integration](command:aitrace.setupAntigravity)"
+        "contents": "AItrace is off. Turn it on to stage AI edits for hand-typing over ghost overlays.\n[Turn on AItrace](command:aitrace.enableStaging)\n[Setup GitHub Copilot Integration](command:aitrace.setupCopilot)\n[Setup OpenCode Plugin](command:aitrace.installOpencodePlugin)\n[Setup Google Antigravity Integration](command:aitrace.setupAntigravity)"
       },
       {
         "view": "aitrace.pending",
         "when": "aitrace.stagingEnabled",
-        "contents": "No pending changes. When OpenCode or Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:aitrace.traceSelection)\n[Setup OpenCode Plugin](command:aitrace.installOpencodePlugin)\n[Setup Antigravity Integration](command:aitrace.setupAntigravity)"
+        "contents": "No pending changes. When GitHub Copilot, OpenCode, or Google Antigravity proposes an edit, it will wait here for you to type it by hand.\n[Trace a selection](command:aitrace.traceSelection)\n[Setup GitHub Copilot Integration](command:aitrace.setupCopilot)\n[Setup OpenCode Plugin](command:aitrace.installOpencodePlugin)\n[Setup Antigravity Integration](command:aitrace.setupAntigravity)"
       }
     ],
     "commands": [
@@ -69,6 +69,10 @@
       {
         "command": "aitrace.setupAntigravity",
         "title": "AItrace: Setup Google Antigravity Integration"
+      },
+      {
+        "command": "aitrace.setupCopilot",
+        "title": "AItrace: Setup GitHub Copilot Integration"
       },
       {
         "command": "aitrace.traceSelection",
@@ -360,7 +364,7 @@
         "aitrace.queueDir": {
           "type": "string",
           "default": ".aitrace",
-          "description": "Workspace-relative directory the OpenCode plugin writes staged AI changes to."
+          "description": "Workspace-relative directory the AI integrations write staged changes to."
         },
         "aitrace.debug": {
           "type": "boolean",
